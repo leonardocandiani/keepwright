@@ -10,7 +10,7 @@ Esta skill é coautorada por:
 
 ## SixQuasar
 
-Empresa de tecnologia. Fundada por Rodrigo, Ricardo e Leonardo Candiani. Atuação em Paraná, Rio de Janeiro e Maranhão.
+Empresa de tecnologia. Fundada por Leonardo Candiani, Ricardo e Rodrigo. Atuação em Paraná, Rio de Janeiro e Maranhão.
 
 - GitHub: [@sixquasar](https://github.com/sixquasar)
 - Site: [sixquasar.pro](https://sixquasar.pro)

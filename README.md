@@ -9,6 +9,7 @@
   <a href="https://github.com/leonardocandiani/setup-projeto-qualidade/blob/main/LICENSE"><img src="https://img.shields.io/github/license/leonardocandiani/setup-projeto-qualidade?style=for-the-badge&color=00d9ff" /></a>
   <a href="https://github.com/leonardocandiani/setup-projeto-qualidade/stargazers"><img src="https://img.shields.io/github/stars/leonardocandiani/setup-projeto-qualidade?style=for-the-badge&color=00d9ff&logo=github" /></a>
   <img src="https://img.shields.io/badge/Claude%20Code-Skill-D97757?style=for-the-badge&logo=anthropic&logoColor=white" />
+  <a href="https://github.com/sixquasar"><img src="https://img.shields.io/badge/Coautora-SixQuasar-C74634?style=for-the-badge&logo=github&logoColor=white" /></a>
 </div>
 
 <br>
@@ -306,22 +307,22 @@ Ver [CHANGELOG.md](CHANGELOG.md) pro histórico completo de versões.
 
 <br>
 
-## Autor
+## Autores
 
-**Leonardo Candiani** — [leonardocandiani.com.br](https://leonardocandiani.com.br)
+Esta skill é coautorada por **[Leonardo Candiani](https://leonardocandiani.com.br)** e **[SixQuasar](https://sixquasar.pro)** (empresa de tecnologia fundada por Leonardo Candiani, Ricardo e Rodrigo). Detalhes completos em [AUTHORS.md](AUTHORS.md).
 
 <div align="center">
   <a href="https://leonardocandiani.com.br">
-    <img src="https://img.shields.io/badge/-Website-0d1117?style=for-the-badge&logo=safari&logoColor=00d9ff" />
+    <img src="https://img.shields.io/badge/Leonardo%20Candiani-0d1117?style=for-the-badge&logo=safari&logoColor=00d9ff" />
+  </a>
+  <a href="https://sixquasar.pro">
+    <img src="https://img.shields.io/badge/SixQuasar-120B08?style=for-the-badge&logo=safari&logoColor=C74634" />
   </a>
   <a href="https://github.com/leonardocandiani">
-    <img src="https://img.shields.io/badge/-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />
+    <img src="https://img.shields.io/badge/-GitHub%20Leo-181717?style=for-the-badge&logo=github&logoColor=white" />
   </a>
-  <a href="https://instagram.com/leonardocandiani">
-    <img src="https://img.shields.io/badge/-Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" />
-  </a>
-  <a href="https://youtube.com/@oleonardocandiani">
-    <img src="https://img.shields.io/badge/-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" />
+  <a href="https://github.com/sixquasar">
+    <img src="https://img.shields.io/badge/-GitHub%20SixQuasar-181717?style=for-the-badge&logo=github&logoColor=white" />
   </a>
 </div>
 
