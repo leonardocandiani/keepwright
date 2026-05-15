@@ -20,6 +20,8 @@ versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
 Primeira release pública. Skill consolidada com fluxo de 10 fases.
 
+**Coautoria**: Leonardo Candiani ([@leonardocandiani](https://github.com/leonardocandiani)) e SixQuasar ([@sixquasar](https://github.com/sixquasar)) — empresa de tecnologia fundada por Leonardo Candiani, Ricardo e Rodrigo. Refinada em produção em SixClaw, Cote.Zap, Ofertix, Sixosteria, Vox e Lupe.
+
 ### Adicionado
 
 #### Estrutura `.claude/`
