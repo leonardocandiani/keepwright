@@ -15,7 +15,7 @@
 <br>
 
 <div align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=600&size=18&duration=2800&pause=900&color=00D9FF&center=true&vCenter=true&width=780&lines=Rules+estruturadas+%E2%80%A2+CI%2FCD+OAuth+%E2%80%A2+Validators+port%C3%A1teis;Auto-review+com+Claude+Code+%E2%80%A2+Merge+seguro+duplo+gate;Deploy+adaptado+%C3%A0+stack+%E2%80%A2+Equaliza%C3%A7%C3%A3o+CLAUDE.md;De+zero+a+projeto+robusto+em+minutos" />
+  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=600&size=18&duration=2800&pause=900&color=00D9FF&center=true&vCenter=true&width=780&lines=Rules+estruturadas+%E2%80%A2+CI%2FCD+OAuth+%E2%80%A2+Validators+port%C3%A1teis;Auto-review+com+Claude+Code+%E2%80%A2+Merge+seguro+duplo+gate;Deploy+adaptado+%C3%A0+stack+%E2%80%A2+Equaliza%C3%A7%C3%A3o+CLAUDE.md;Setup+completo+em+poucos+minutos" />
 </div>
 
 <br>
