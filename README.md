@@ -78,18 +78,18 @@ A skill executa **10 fases** com ok explícito a cada onda. Fase 1 é destrutiva
 <td width="50%" valign="top">
 
 ### ⚙️ GitHub Actions
-- **`ci.yml`** — type check, lint, validators
-- **`pr-auto-review.yml`** — heurística + Claude review via **OAuth**
-- **`claude-mention.yml`** — `@claude` sob demanda em PR/issue
-- **`pr-auto-merge.yml`** — Tier S inerte (docs/registro/frentes)
+- **`ci.yml`**: type check, lint, validators
+- **`pr-auto-review.yml`**: heurística + Claude review via **OAuth**
+- **`claude-mention.yml`**: `@claude` sob demanda em PR/issue
+- **`pr-auto-merge.yml`**: Tier S inerte (docs/registro/frentes)
 - **Deploy adaptado** à stack (Vercel/Supabase/Docker/npm/Pages)
 
 </td>
 <td width="50%" valign="top">
 
 ### 🛡️ Validators portáveis
-- **`validate-no-secrets.ts`** — grep agressivo de secrets em staged
-- **`validate-claude-md-sync.ts`** — falha se rule sem ponteiro no CLAUDE.md
+- **`validate-no-secrets.ts`**: grep agressivo de secrets em staged
+- **`validate-claude-md-sync.ts`**: falha se rule sem ponteiro no CLAUDE.md
 - **Slot custom** pra validators específicos do projeto
 
 </td>
@@ -120,16 +120,16 @@ A skill executa **10 fases** com ok explícito a cada onda. Fase 1 é destrutiva
 ## Fluxo das 10 fases
 
 ```
-Fase 0 — Mapeamento do projeto-alvo (stack, git, Claude config, CI/CD, deploy)
-Fase 1 — Setup base do git (init + repo GitHub + .gitignore) [DESTRUTIVA]
-Fase 2 — Estrutura .claude/ (rules + agents + settings)
-Fase 3 — Constituição CLAUDE.md equalizada + docs base
-Fase 4 — GitHub Actions (CI + auto-review + claude-mention + auto-merge + deploy)
-Fase 5 — Validators portáveis (anti-secrets + sync CLAUDE.md)
-Fase 6 — Hooks (lefthook + geradores auto)
-Fase 7 — Branch protection + CODEOWNERS + PR template
-Fase 8 — Smoke test do setup (PR de teste end-to-end)
-Fase 9 — Catalisação inicial em docs/licoes/L-000-setup-inicial.md
+Fase 0: Mapeamento do projeto-alvo (stack, git, Claude config, CI/CD, deploy)
+Fase 1: Setup base do git (init + repo GitHub + .gitignore) [DESTRUTIVA]
+Fase 2: Estrutura .claude/ (rules + agents + settings)
+Fase 3: Constituição CLAUDE.md equalizada + docs base
+Fase 4: GitHub Actions (CI + auto-review + claude-mention + auto-merge + deploy)
+Fase 5: Validators portáveis (anti-secrets + sync CLAUDE.md)
+Fase 6: Hooks (lefthook + geradores auto)
+Fase 7: Branch protection + CODEOWNERS + PR template
+Fase 8: Smoke test do setup (PR de teste end-to-end)
+Fase 9: Catalisação inicial em docs/licoes/L-000-setup-inicial.md
 ```
 
 Cada fase termina com smoke test e pede ok antes de avançar.
@@ -303,7 +303,7 @@ Ver [CHANGELOG.md](CHANGELOG.md) pro histórico completo de versões.
 
 ## Licença
 
-[MIT](LICENSE) — usa, modifica, distribui à vontade.
+[MIT](LICENSE): usa, modifica, distribui à vontade.
 
 <br>
 
