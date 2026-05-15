@@ -1,0 +1,109 @@
+#!/usr/bin/env bun
+/**
+ * gen-project-structure.ts
+ *
+ * Gera .project-structure.md com tree da hierarquia do projeto.
+ * Roda manual ou via hook pré-commit.
+ */
+
+import { readdir, stat, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
+
+const ROOT = decodeURIComponent(new URL("../..", import.meta.url).pathname);
+
+const IGNORE_DIRS = new Set([
+  ".git",
+  "node_modules",
+  ".next",
+  ".vercel",
+  "dist",
+  "build",
+  ".turbo",
+  ".deno",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".cache",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".ruff_cache",
+  "coverage",
+  "tmp",
+  ".tmp",
+  "_temp",
+  ".planning",
+]);
+
+const IGNORE_FILES = new Set([".DS_Store", ".env", ".env.local"]);
+
+interface Node {
+  name: string;
+  path: string;
+  isDir: boolean;
+  children?: Node[];
+}
+
+async function walk(dir: string, depth = 0, maxDepth = 4): Promise<Node[]> {
+  if (depth > maxDepth) return [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const nodes: Node[] = [];
+  for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (e.isDirectory()) {
+      if (IGNORE_DIRS.has(e.name)) continue;
+      const child = await walk(join(dir, e.name), depth + 1, maxDepth);
+      nodes.push({
+        name: e.name,
+        path: relative(ROOT, join(dir, e.name)),
+        isDir: true,
+        children: child,
+      });
+    } else {
+      if (IGNORE_FILES.has(e.name)) continue;
+      if (e.name.endsWith(".log")) continue;
+      nodes.push({
+        name: e.name,
+        path: relative(ROOT, join(dir, e.name)),
+        isDir: false,
+      });
+    }
+  }
+  return nodes;
+}
+
+function render(nodes: Node[], depth = 0): string {
+  let out = "";
+  for (const n of nodes) {
+    const indent = "  ".repeat(depth);
+    if (n.isDir) {
+      out += `${indent}- 📁 [${n.name}/](${n.path})\n`;
+      if (n.children && n.children.length > 0) {
+        out += render(n.children, depth + 1);
+      }
+    } else {
+      out += `${indent}- [${n.name}](${n.path})\n`;
+    }
+  }
+  return out;
+}
+
+async function main() {
+  const tree = await walk(ROOT, 0, 4);
+  const out = `# Project Structure
+
+> Auto-gerado por \`scripts/hooks/gen-project-structure.ts\`. **Não editar manualmente.**
+
+Última atualização: ${new Date().toISOString().slice(0, 10)}
+
+${render(tree)}
+`;
+  await writeFile(join(ROOT, ".project-structure.md"), out, "utf-8");
+  console.log("✅ .project-structure.md atualizado.");
+}
+
+main();

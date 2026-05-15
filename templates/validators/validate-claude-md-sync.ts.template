@@ -1,0 +1,72 @@
+#!/usr/bin/env bun
+/**
+ * validate-claude-md-sync.ts
+ *
+ * Equalização do CLAUDE.md como gate duro. Falha o CI se:
+ *  1. Existe arquivo em .claude/rules/ sem ponteiro no CLAUDE.md
+ *  2. CLAUDE.md aponta pra uma rule que não existe (ponteiro morto)
+ *
+ * Princípio: rule sem ponteiro no CLAUDE.md = rule invisível pra quem lê
+ * só a constituição. O CLAUDE.md é sempre carregado; as rules não. Manter
+ * os dois sincronizados é camada de segurança, não burocracia.
+ */
+
+import { readdir, readFile } from "node:fs/promises";
+
+const RULES_DIR = ".claude/rules";
+const CLAUDE_MD = "CLAUDE.md";
+
+function fail(msg: string): never {
+  console.error(`\x1b[31m❌ validate-claude-md-sync: ${msg}\x1b[0m`);
+  process.exit(1);
+}
+
+let claudeMd: string;
+try {
+  claudeMd = await readFile(CLAUDE_MD, "utf-8");
+} catch {
+  fail(`${CLAUDE_MD} não encontrado na raiz do projeto.`);
+}
+
+let ruleFiles: string[];
+try {
+  ruleFiles = (await readdir(RULES_DIR)).filter((f) => f.endsWith(".md"));
+} catch {
+  console.log("validate-claude-md-sync: .claude/rules/ ausente, nada a checar.");
+  process.exit(0);
+}
+
+const problemas: string[] = [];
+
+// 1. toda rule tem ponteiro no CLAUDE.md
+for (const f of ruleFiles) {
+  if (!claudeMd.includes(f)) {
+    problemas.push(
+      `Rule \`${RULES_DIR}/${f}\` não tem ponteiro no ${CLAUDE_MD}. ` +
+        `Adicione uma linha no índice "Como ler este projeto".`,
+    );
+  }
+}
+
+// 2. todo ponteiro .claude/rules/<x>.md no CLAUDE.md existe de fato
+const referenciadas = [...claudeMd.matchAll(/\.claude\/rules\/([\w.-]+\.md)/g)].map(
+  (m) => m[1],
+);
+for (const ref of new Set(referenciadas)) {
+  if (!ruleFiles.includes(ref)) {
+    problemas.push(
+      `${CLAUDE_MD} referencia \`.claude/rules/${ref}\` que não existe ` +
+        `(ponteiro morto). Corrija o nome ou crie a rule.`,
+    );
+  }
+}
+
+if (problemas.length > 0) {
+  console.error(`\x1b[31m❌ validate-claude-md-sync: ${problemas.length} problema(s)\x1b[0m`);
+  for (const p of problemas) console.error(`   - ${p}`);
+  process.exit(1);
+}
+
+console.log(
+  `\x1b[32m✅ validate-claude-md-sync: ${ruleFiles.length} rules sincronizadas com ${CLAUDE_MD}.\x1b[0m`,
+);

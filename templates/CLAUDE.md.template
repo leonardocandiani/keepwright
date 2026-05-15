@@ -1,0 +1,72 @@
+# {{PROJETO}}
+
+{{DESCRICAO_UMA_LINHA}}
+
+## Como ler este projeto
+
+| Quando | Vai pra |
+|---|---|
+| Primeira vez aqui | `README.md` |
+| Regras invioláveis | `.claude/rules/01-invariantes.md` |
+| Como mexer sem quebrar coisa | `.claude/rules/02-equalizacao-pipeline.md` |
+| Discordando do código? | `.claude/rules/03-hierarquia-epistemica.md` |
+| Abrindo PR | `.claude/rules/04-pr-flow.md` + `.github/PULL_REQUEST_TEMPLATE.md` |
+| Vai mergear um PR? | `.claude/rules/07-merge-seguro.md` |
+| Aprendeu algo? | `.claude/rules/05-catalisacao-licoes.md` |
+| Investigação grande | `.claude/rules/06-frentes-paralelas.md` |
+| Histórico cronológico | `registro-construcao.md` |
+| Diário vivo | `AGENTS.md` |
+
+> Esta tabela é a **equalização do CLAUDE.md**: toda rule em `.claude/rules/`
+> tem ponteiro aqui. Rule sem ponteiro = invisível pra quem lê só o CLAUDE.md.
+> O validador `validate-claude-md-sync` quebra o CI se algo dessincronizar.
+
+## Arquitetura
+
+{{ARQUITETURA}}
+
+Toda mudança consulta `.claude/rules/02-equalizacao-pipeline.md` pra saber
+quais camadas tocar e em que ordem.
+
+## Stack
+
+{{STACK}}
+
+## Deploy
+
+{{DEPLOY_RESUMO}}
+
+Detalhe e gatilhos em `.github/workflows/` + `docs/deploys/`.
+
+## Merge seguro (invariante)
+
+Nunca `gh pr merge` direto. Sempre `bash scripts/gh-pr-merge-safe.sh <PR>`
+(gate `mergeStateStatus CLEAN`). Auto-merge automático só pra Tier S inerte
+(`docs/`, `registro-construcao.md`, `.planning/frentes/`). Tudo que toca
+código, CI, rules, deploy ou config é Tier H: a IA prepara, o mantenedor dá
+o go. Detalhe em `.claude/rules/07-merge-seguro.md`.
+
+## Agentes (paralelismo isolado)
+
+Este projeto é git, então `.claude/agents/worker.md` usa
+`isolation: worktree`: cada worker spawnado trabalha num worktree git
+próprio, sem colidir no working tree do orquestrador nem de outros workers
+paralelos. Use pra fan-out de implementação. O worker entrega branch pronto,
+o merge segue `.claude/rules/07-merge-seguro.md`. Agentes read-only não
+usam worktree.
+
+## Hierarquia epistêmica (resumo)
+
+P1 sintoma reportado > P2 logs em produção > P3 estado do banco > P4 código
+> P5 inferência abstrata. Quando duas fontes contradizem, a mais alta vence.
+Detalhe em `.claude/rules/03-hierarquia-epistemica.md`.
+
+## Princípio nuclear
+
+Toda mudança catalisa lição imediatamente após merge. Não acumula "vou
+catalogar depois". Passa de 1 dia, perdeu. Ver
+`.claude/rules/05-catalisacao-licoes.md`.
+
+## Data atual
+
+> {{DATA_ATUAL}}

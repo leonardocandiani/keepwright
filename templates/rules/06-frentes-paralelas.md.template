@@ -1,0 +1,60 @@
+# Frentes Paralelas
+
+Pra trabalho com investigação extensa, plano, e implementação que **não cabe
+num único PR sequencial**, usa frente isolada em `.planning/frentes/`.
+
+## Quando criar uma frente
+
+- Investigação cURL/empírica que vai gerar um plano (não é um PR direto)
+- Mudança que toca 4+ camadas e precisa documentar decisões por camada antes de codar
+- Auditoria pós-bug pra entender o estado real do sistema
+- Refactor grande quebrado em 3+ PRs sequenciais
+
+Pra mudança pequena (1-2 arquivos) **não cria frente** — vai direto pro PR.
+
+## Estrutura
+
+```
+.planning/frentes/
+├── frente-<id>-<titulo-curto>/
+│   ├── 00-investigacao.md       (P1 → P5, achados empíricos)
+│   ├── 01-plano.md              (camadas a tocar, ordem, decisões)
+│   ├── 02-execucao.md           (checklist while-implementing)
+│   ├── 03-auditoria.md          (pós-merge: o que aprendemos)
+│   └── artefatos/               (responses cURL, prints, SQL queries)
+└── README.md                    (índice de frentes ativas)
+```
+
+## Convenções
+
+- **ID:** `<letra>.<numero>` — `f1`, `f2.1`, `f2.2`, `z1`. Letra agrupa tema, número desambigua.
+- **Título curto:** kebab-case, 3-5 palavras. Ex: `frente-f1-cache-invalidation`.
+- **Frentes paralelas (W) vs sequenciais (numéricas):** convenção opcional, segue o instinto do que faz sentido.
+
+## Frentes não são branches git
+
+Frente é **namespace de pensamento e plano**. Não confunde com branch.
+- 1 frente pode gerar 3 branches/PRs sequenciais
+- 5 frentes podem estar abertas simultaneamente sem conflito (são pensamentos paralelos)
+- Branches git são criados na fase 02-execucao quando começa codar
+
+## Ciclo de vida
+
+1. **Investigação** (`00-investigacao.md`) — pegar dados empíricos. cURL, SQL,
+   logs. Hipóteses confirmadas/refutadas.
+2. **Plano** (`01-plano.md`) — camadas a tocar (referência ao 02-equalizacao-pipeline.md),
+   ordem, riscos, smoke tests.
+3. **Execução** (`02-execucao.md`) — checklist enquanto implementa. Marca o
+   que feito, o que pendente, decisões on-the-fly.
+4. **Auditoria** (`03-auditoria.md`) — pós-merge. O que funcionou, o que
+   não funcionou. Lições.
+5. **Catalisação** — auditoria vira `docs/licoes/L-XXX-*.md` e/ou
+   `docs/casos-referencia/`. Frente fica arquivada como histórico, não é
+   deletada (memória institucional).
+
+## Anti-pattern
+
+❌ Frente sem fase 00-investigacao (parte direto pro plano sem dados empíricos)
+❌ Frente sem fase 03-auditoria (esqueceu de catalisar lições)
+❌ Frente "infinita" que nunca encerra — encerra ou divide em sub-frentes
+❌ Frente pra mudança trivial — overhead maior que valor

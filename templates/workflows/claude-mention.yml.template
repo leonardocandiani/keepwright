@@ -1,0 +1,91 @@
+name: Claude Mention
+
+# Aciona Claude quando alguém escreve @claude num comentário de PR, issue,
+# review ou review comment. Modo interativo: Claude lê o pedido no comentário
+# e responde/age conforme.
+#
+# AUTENTICAÇÃO (prioridade OAuth): secret CLAUDE_CODE_OAUTH_TOKEN.
+#   Obter: `claude setup-token` no terminal -> gera sk-ant-oat01-...
+#   Setar: gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>
+# Sem o secret, o job sai cedo sem erro (graceful degradation).
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  guard:
+    name: Check trigger + key
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.decide.outputs.go }}
+    steps:
+      - id: decide
+        run: |
+          set -e
+          HAS_KEY=""
+          if [ -n "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then HAS_KEY="1"; fi
+
+          BODY=""
+          case "${{ github.event_name }}" in
+            issue_comment)              BODY='${{ github.event.comment.body }}' ;;
+            pull_request_review_comment) BODY='${{ github.event.comment.body }}' ;;
+            pull_request_review)        BODY='${{ github.event.review.body }}' ;;
+            issues)                     BODY='${{ github.event.issue.body }} ${{ github.event.issue.title }}' ;;
+          esac
+
+          MENTION=""
+          if echo "$BODY" | grep -qi "@claude"; then MENTION="1"; fi
+
+          if [ -n "$HAS_KEY" ] && [ -n "$MENTION" ]; then
+            echo "go=true" >> $GITHUB_OUTPUT
+          else
+            echo "go=false" >> $GITHUB_OUTPUT
+            echo "Skip: has_key=$HAS_KEY mention=$MENTION"
+          fi
+
+  claude:
+    name: Claude responde
+    needs: guard
+    if: ${{ needs.guard.outputs.go == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Você foi acionado por uma menção @claude neste projeto.
+
+            Antes de responder ou agir, leia o contexto do projeto:
+            - `CLAUDE.md` (constituição e índice das rules)
+            - `.claude/rules/01-invariantes.md` (regras invioláveis)
+            - `.claude/rules/02-equalizacao-pipeline.md` (camadas do pipeline)
+            - `.claude/rules/03-hierarquia-epistemica.md` (P1-P5)
+            - `.claude/rules/07-merge-seguro.md` (antes de qualquer merge)
+            - `docs/licoes/` (lições já catalogadas)
+
+            Responda o que foi pedido no comentário/issue que te acionou. Se for
+            pra alterar código, respeite as rules e o fluxo de PR. Se for dúvida,
+            responda direto e claro em português, sem floreio.
+
+            Use `gh pr comment` ou `gh issue comment` pra responder no thread certo.
+          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob,Edit,Write"'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

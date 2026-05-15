@@ -1,0 +1,46 @@
+# Hierarquia Epistêmica P1–P5
+
+Quando duas fontes contradizem, a mais alta vence. Inversão clássica: **código (P5) nunca refuta sintoma reportado pelo mantenedor (P1)**. Se contradiz, o código está errado.
+
+## Hierarquia
+
+| Nível | Fonte | Quando vence |
+|---|---|---|
+| **P1** | Sintoma reportado pelo mantenedor ou usuário (print, log colado, transcrição, descrição direta do que viu) | Acima de tudo. Se viu acontecer, aconteceu. |
+| **P2** | Logs em produção (logs do servidor/plataforma, histórico de execução, dashboard de serviço externo) | Acima de P3-P5. Logs são a realidade do sistema rodando. |
+| **P3** | Estado do banco de dados (snapshot atual das tabelas relevantes) | Verdade do snapshot atual. Acima de P4-P5. |
+| **P4** | Código-fonte | O que **deveria** acontecer. Pode estar errado. |
+| **P5** | Auditoria por parser/static analysis / leitura abstrata do código | Inferência sobre o código. Mais fraco que P4 (que é o código real). |
+
+## Exemplos práticos
+
+### ❌ ERRADO — P5 refuta P1
+> Mantenedor: "o botão Salvar não responde quando o formulário tem 2 ou mais anexos"
+> Eu (P5): "olhei o handler do submit e ele trata anexos, então não pode acontecer"
+
+P1 ganha. Procurar **por quê** o handler falhou nesse caso. Hipóteses: limite de payload, race com o upload, validação que barra silenciosamente, estado não propagado, etc.
+
+### ✅ CERTO — investigação descendente
+P1 (mantenedor viu) → P2 (logs do servidor no momento do clique) → P3 (registro persistido no banco) → P4 (linha do handler que gerou) → fix.
+
+### ❌ ERRADO — assumir P3 quando P2 mostra outra coisa
+DB diz `status=processado`, logs mostram que o job anterior estourou exceção e o status deveria ter virado `falhou`. P2 > P3 — o DB está stale, os logs são autoritativos.
+
+## Aplicação em código
+
+Antes de afirmar "isso não pode acontecer porque o código X faz Y":
+1. Verifique se o mantenedor testou (P1) e o que viu
+2. Verifique logs (P2)
+3. Verifique o banco (P3)
+4. Só **depois** apele ao código (P4)
+5. Nunca apele à inferência abstrata (P5) sem corroboração
+
+## Aplicação em debugging
+
+Quando um bug é reportado:
+- Pergunte **o que o mantenedor viu** (P1) antes de mergulhar no código
+- Reproduza com logs (P2)
+- Cheque estado do banco pré e pós (P3)
+- Localize a linha no código (P4)
+
+Pular pra P5 ("olhei o código e parece OK") é como concluir que o paciente está saudável sem examinar, só lendo o prontuário.

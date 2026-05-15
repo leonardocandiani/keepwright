@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate skill structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check SKILL.md exists with frontmatter
+        run: |
+          test -f SKILL.md || { echo "SKILL.md missing"; exit 1; }
+          head -1 SKILL.md | grep -q "^---$" || { echo "SKILL.md missing frontmatter"; exit 1; }
+          grep -q "^name: setup-projeto-qualidade$" SKILL.md || { echo "SKILL.md frontmatter name missing"; exit 1; }
+          grep -q "^description:" SKILL.md || { echo "SKILL.md frontmatter description missing"; exit 1; }
+
+      - name: Check README.md exists
+        run: test -f README.md
+
+      - name: Check CHANGELOG.md exists
+        run: test -f CHANGELOG.md
+
+      - name: Check LICENSE exists
+        run: test -f LICENSE
+
+      - name: Verify all expected templates exist
+        run: |
+          REQUIRED=(
+            "templates/CLAUDE.md.template"
+            "templates/settings.json.template"
+            "templates/lefthook.yml.template"
+            "templates/PULL_REQUEST_TEMPLATE.md.template"
+            "templates/rules/01-invariantes.md.template"
+            "templates/rules/02-equalizacao-pipeline.md.template"
+            "templates/rules/03-hierarquia-epistemica.md.template"
+            "templates/rules/04-pr-flow.md.template"
+            "templates/rules/05-catalisacao-licoes.md.template"
+            "templates/rules/06-frentes-paralelas.md.template"
+            "templates/rules/07-merge-seguro.md.template"
+            "templates/agents/worker.md.template"
+            "templates/workflows/ci.yml.template"
+            "templates/workflows/pr-auto-review.yml.template"
+            "templates/workflows/claude-mention.yml.template"
+            "templates/workflows/pr-auto-merge.yml.template"
+            "templates/workflows/deploy/vercel.yml.template"
+            "templates/workflows/deploy/supabase-functions.yml.template"
+            "templates/workflows/deploy/docker-ghcr.yml.template"
+            "templates/workflows/deploy/npm-publish.yml.template"
+            "templates/workflows/deploy/static-pages.yml.template"
+            "templates/validators/validate-no-secrets.ts.template"
+            "templates/validators/validate-claude-md-sync.ts.template"
+            "templates/hooks/gen-project-structure.ts.template"
+            "templates/hooks/gen-todos-report.ts.template"
+            "templates/scripts/gh-pr-merge-safe.sh.template"
+          )
+          MISSING=0
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "Missing: $f"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+          if [ $MISSING -gt 0 ]; then
+            echo "$MISSING templates missing"
+            exit 1
+          fi
+          echo "All ${#REQUIRED[@]} templates present"
+
+      - name: No secrets committed
+        run: |
+          set -e
+          PATTERNS=(
+            "pk_live_[A-Za-z0-9]{20,}"
+            "sk_live_[A-Za-z0-9]{20,}"
+            "sbp_[a-f0-9]{40}"
+            "ghp_[A-Za-z0-9]{36}"
+            "sk-ant-api[0-9]+-[A-Za-z0-9_-]+"
+            "sk-ant-oat01-[A-Za-z0-9_-]+"
+            "EAA[A-Za-z0-9]{60,}"
+          )
+          FOUND=0
+          for pat in "${PATTERNS[@]}"; do
+            MATCHES=$(grep -rEn "$pat" --include="*.md" --include="*.ts" --include="*.yml" --include="*.json" --include="*.sh" --include="*.template" --exclude-dir=node_modules --exclude-dir=.git . || true)
+            if [ -n "$MATCHES" ]; then
+              echo "Secret pattern matched: $pat"
+              echo "$MATCHES"
+              FOUND=$((FOUND + 1))
+            fi
+          done
+          if [ $FOUND -gt 0 ]; then exit 1; fi
+          echo "No secrets detected"

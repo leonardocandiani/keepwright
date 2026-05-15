@@ -1,0 +1,53 @@
+# Fluxo de PR
+
+Todo merge na `main` passa por PR. Sem exceção, mesmo pra typo.
+
+## Antes de abrir o PR
+
+1. **Branch:** `feat/<descrição>`, `fix/<descrição>`, `refactor/<descrição>`, `docs/<descrição>`, `chore/<descrição>`
+2. **Commits:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Autor `{{MANTENEDOR}}`. NUNCA mencionar IA.
+3. **Type check / build:** roda o check da stack tocada (ex: `tsc --noEmit`, `deno check`, `go build`, `pytest --collect-only`). Verde antes de push.
+4. **Validators:** rodam local via `scripts/validators/run-all.sh`. Bloqueiam se falham.
+5. **Equalização:** verificar `.claude/rules/02-equalizacao-pipeline.md` — todas as camadas necessárias foram tocadas?
+6. **Smoke test:** se mudou comportamento de uma feature crítica, simular o fluxo end-to-end com dados realistas antes de abrir o PR.
+
+## Template do PR
+
+`.github/PULL_REQUEST_TEMPLATE.md` é obrigatório. Sempre preenche:
+
+- **Camadas tocadas** (lista de camadas do `02-equalizacao-pipeline.md`)
+- **Smoke test executado** (qual, resultado)
+- **Quebra contrato com módulo vizinho?** (camadas que precisam gerar o mesmo resultado)
+- **Catalisar lição?** (referência a `docs/licoes/L-XXX-*.md` criada)
+
+## Review
+
+- **Auto-review** rola via GitHub Action `pr-auto-review.yml` (heurística + Claude Code review do diff)
+- **Aprovação humana:** o mantenedor via CODEOWNERS. Merge segue `.claude/rules/07-merge-seguro.md` (duplo gate + `mergeStateStatus CLEAN`)
+- Auto-review pode marcar `request-changes` se detecta:
+  - Mudança de comportamento sem teste correspondente
+  - Violação de invariante (`.claude/rules/01-invariantes.md`)
+  - Regra de negócio crítica alterada sem update na doc canônica
+  - Contrato novo (tool/endpoint/schema) sem definição completa
+  - Camada tocando módulo vizinho sem ratificar no callsite vizinho
+
+## Merge
+
+- Squash merge (linha de história limpa na `main`)
+- Mensagem do squash segue Conventional Commits
+- Branch deletado após merge
+- Tag se for release: `v0.X.Y` (semver)
+
+## Pós-merge — catalisação
+
+1. Se PR tocou 3+ camadas, criar `docs/casos-referencia/YYYY-MM-DD-titulo.md`
+2. Se PR consertou bug, adicionar entrada em `docs/licoes/L-XXX-titulo.md`
+3. Se PR estabeleceu nova convenção, virar rule em `.claude/rules/` (e adicionar ponteiro no `CLAUDE.md`)
+4. Append em `registro-construcao.md` (linha cronológica)
+
+## Anti-pattern
+
+❌ Merge direto sem PR (mesmo o mantenedor)
+❌ `--no-verify` pra pular hook que falhou
+❌ Squash merge sem editar a mensagem (mantém commits ruins do branch)
+❌ Fechar PR sem catalisar lição

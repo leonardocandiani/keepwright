@@ -1,0 +1,50 @@
+# PR — <título curto descritivo>
+
+## Sintoma / motivação
+
+<Por que esse PR existe? Print, log, lead bug, pedido do usuário. Não fabrica narrativa retroativa.>
+
+## O que mudou
+
+-
+-
+-
+
+## Camadas tocadas (equalização)
+
+Referência: `.claude/rules/02-equalizacao-pipeline.md`
+
+<!-- Adapte a lista de camadas conforme arquitetura do projeto -->
+- [ ] C1 — {{CAMADA_1}}
+- [ ] C2 — {{CAMADA_2}}
+- [ ] C3 — {{CAMADA_3}}
+- [ ] CN — Outras
+
+**Pulei camada porque:** <justificar se aplicável>
+
+## Smoke test
+
+<que cenário rodei pra validar>
+
+## Catalisação
+
+- [ ] Lição catalogada em `docs/licoes/L-XXX-*.md`
+- [ ] Caso de referência criado em `docs/casos-referencia/YYYY-MM-DD-*.md` (se 3+ camadas)
+- [ ] Rule atualizada em `.claude/rules/` (se nova convenção)
+- [ ] `registro-construcao.md` append entry
+- [ ] `AGENTS.md` entry com data e camadas
+
+## Risco
+
+- [ ] Baixo (config, doc, rule)
+- [ ] Médio (arquivo único, sem mudança de contrato)
+- [ ] Alto (esquema DB, contrato API, fluxo crítico)
+
+## Checklist
+
+- [ ] Type check verde local
+- [ ] Validators verdes (`scripts/validators/run-all.sh`)
+- [ ] Sem `console.log` de debug que vai pra produção
+- [ ] Sem segredo commitado (validate-no-secrets passa)
+- [ ] Mensagem do squash segue Conventional Commits
+- [ ] Sem `--no-verify` em commits desta branch

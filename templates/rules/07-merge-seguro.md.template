@@ -1,0 +1,70 @@
+# Merge Seguro — duplo gate + `mergeStateStatus: CLEAN`
+
+Invariante operacional {{PROJETO}}. Carrega toda sessão que execute
+`gh pr merge`. Origem: incidente recorrente onde um agente mergeou PR com
+check falhando porque confiou em `mergeable` sem checar `mergeStateStatus`.
+Classificado grave.
+
+## Princípio fundador
+
+**Merge PR APENAS quando `mergeStateStatus === "CLEAN"`.** `mergeable ===
+"MERGEABLE"` sozinho é INSUFICIENTE — reportam conceitos diferentes.
+
+| Campo | Significado | Suficiente? |
+|---|---|---|
+| `mergeable: MERGEABLE` | Sem conflito de arquivo | ❌ NÃO |
+| `mergeStateStatus: CLEAN` | Todos checks passaram, zero failure visível | ✅ SIM |
+| `UNSTABLE` | Mergeable mas check falhando visível | ❌ |
+| `BLOCKED` | Branch protection / approval ausente | ❌ |
+| `BEHIND` | Rebase needed | ❌ |
+| `DIRTY` | Conflito ativo | ❌ |
+
+## Wrapper canônico obrigatório
+
+Toda sessão Claude Code OU terminal manual usa
+`scripts/gh-pr-merge-safe.sh` em vez de `gh pr merge` direto.
+
+```bash
+bash scripts/gh-pr-merge-safe.sh 42 --squash --delete-branch
+```
+
+O wrapper: consulta `mergeStateStatus`. Se != CLEAN → lista `gh pr checks`
++ exit 1. Se == CLEAN → mergeia. `gh pr merge` direto = violação.
+
+Bypass: `{{PROJETO_UPPER}}_MERGE_UNSAFE=1` apenas com aval explícito do
+dono documentado em commit/PR body e contexto onde o estado não-CLEAN é
+comprovadamente OK.
+
+## Duplo gate (quem decide o merge)
+
+### Gate 1 — executor (sessão Claude Code local)
+
+Investiga, implementa, abre PR. Smoke local verde antes do push.
+
+### Gate 2 — revisor (Claude AI review no GitHub Action)
+
+Posta veredicto informacional: status + camadas + achados + ressalvas +
+recomendação. **Branch protection não bloqueia merge — o veredicto é
+input, não autorização.**
+
+### Decisão final por tier
+
+| Tier | Conteúdo | Quem aciona o merge |
+|---|---|---|
+| **S inerte** | `docs/**`, `registro-construcao.md`, `.planning/frentes/**`, `.project-structure.md`, `.todos-report.md` | `pr-auto-merge.yml` autônomo (nada deploya, nenhum invariante alcança) |
+| **H** | todo o resto: código, CI, rules, configs raiz, fala, dinheiro | IA prepara, **go humano de 1 linha** |
+
+Padrão Tier H: revisor posta veredicto → executor lê → roda
+`gh-pr-merge-safe.sh` → entrega ao dono uma linha ("PR #N, sem ressalvas,
+mergeState CLEAN, toca X, go?") → dono confirma → executor mergeia.
+
+`vai`/`ok` confirma o merge daquele PR já preparado. Não é autorização
+permanente nem cobre commit.
+
+## Anti-pattern
+
+❌ `gh pr merge` sem checar `mergeStateStatus`
+❌ `gh pr merge` direto sem o wrapper
+❌ Loop IA→IA mergeando Tier H sem go humano
+❌ Auto-merge Tier S quando 1 arquivo do diff cai fora da allowlist
+❌ Bypass `{{PROJETO_UPPER}}_MERGE_UNSAFE=1` sem aval documentado

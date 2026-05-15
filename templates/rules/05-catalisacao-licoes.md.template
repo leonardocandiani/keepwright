@@ -1,0 +1,105 @@
+# Catalisação de Lições
+
+Toda lição vira artefato versionado **imediatamente após o merge do fix**. Não acumula em "vou catalogar depois" — passa de 1 dia e perdeu.
+
+## Onde catalogar
+
+| Tipo de aprendizado | Destino |
+|---|---|
+| Bug específico com causa identificada | `docs/licoes/L-XXX-titulo.md` |
+| Mudança em 3+ camadas com decisão arquitetural | `docs/casos-referencia/YYYY-MM-DD-titulo.md` |
+| Nova convenção que deve aplicar daqui pra frente | `.claude/rules/NN-titulo.md` (rule nova OU edit rule existente) |
+| Mudança de API externa (gateway de pagamento, CRM, provedor, etc.) | `docs/api/<servico>.md` |
+| Deploy/migração relevante | `docs/deploys/historico.md` (append) |
+| Cronologia do projeto | `registro-construcao.md` (append) |
+
+## Template de lição
+
+`docs/licoes/L-XXX-titulo.md`:
+
+```markdown
+# L-XXX — Título curto
+
+**Data:** YYYY-MM-DD
+**PR:** #NN
+**Camadas afetadas:** (lista de camadas, referência a 02-equalizacao-pipeline.md)
+**Severidade:** alta/média/baixa
+
+## Sintoma (P1)
+
+O que o mantenedor (ou usuário em produção) viu. Nas palavras dele, screenshot, transcrição, log colado.
+
+## Investigação
+
+Caminho descendente P1 → P5. Cada nível confirma ou refuta hipótese.
+
+## Causa raiz
+
+Onde o bug nasceu. Não "esqueci de chamar X", mas POR QUÊ era fácil esquecer
+(ex: nome do método não sugeria importância, ausência de validator, prompt
+ambíguo, etc.).
+
+## Fix
+
+O que mudou. Diff resumido ou referência de commit.
+
+## Prevenção daqui pra frente
+
+O que adicionamos pra esse bug não voltar:
+- Validator novo em `scripts/validators/`?
+- Rule nova em `.claude/rules/`?
+- Smoke test no `tests/`?
+- Tipo no TypeScript fica menos permissivo?
+
+## Quando essa lição se aplica
+
+Lista de situações futuras onde esse aprendizado vale.
+```
+
+## Template de caso-referência
+
+`docs/casos-referencia/YYYY-MM-DD-titulo.md`:
+
+```markdown
+# Caso: <título>
+
+**Data:** YYYY-MM-DD
+**Tipo:** feature / refactor / decisão arquitetural
+
+## Contexto
+
+Por que essa mudança foi necessária.
+
+## Decisão
+
+O que escolhemos fazer, e por que. Mencionar alternativas consideradas e
+por que foram rejeitadas.
+
+## Camadas tocadas
+
+Lista das camadas da equalização do pipeline (C1-C12). Pra cada uma, o que
+foi alterado.
+
+## Smoke test
+
+Qual cenário rodamos pra validar. Resultado.
+
+## Catalisação derivada
+
+- Lições criadas: L-XXX, L-XXY
+- Rules atualizadas
+- Validators novos
+```
+
+## Princípio nuclear
+
+Lição não catalogada = lição perdida. Próximo dev (ou você mesmo daqui 3
+meses) vai repetir o mesmo bug porque o aprendizado morreu no contexto de
+uma conversa solta.
+
+## Anti-pattern
+
+❌ "Vou anotar depois" — não vai
+❌ Catalogar só o **fix** sem o **porquê o bug aconteceu** — perde valor
+❌ Lição genérica ("validar input") — específica ou nada
+❌ Lição duplicada — antes de criar, grep em `docs/licoes/` se já existe

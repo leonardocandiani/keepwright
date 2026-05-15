@@ -1,0 +1,85 @@
+name: PR Auto-Merge (Tier S)
+
+# Auto-aprova + auto-mergeia APENAS PRs Tier S (conteúdo inerte):
+# docs, cronologia, frentes. Fail-safe por exclusão: 1 arquivo fora da
+# allowlist → aborta, cai no fluxo humano. Ver .claude/rules/07-merge-seguro.md.
+#
+# Dispara via workflow_run após o CI concluir (garante CI verde antes).
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve PR
+        id: pr
+        run: |
+          set -e
+          PR=$(gh pr list -R "$GITHUB_REPOSITORY" \
+            --head "${{ github.event.workflow_run.head_branch }}" \
+            --state open --json number,isDraft,author -q '.[0]')
+          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
+            echo "skip=1" >> $GITHUB_OUTPUT; exit 0
+          fi
+          echo "number=$(echo "$PR" | jq -r .number)" >> $GITHUB_OUTPUT
+          echo "draft=$(echo "$PR" | jq -r .isDraft)" >> $GITHUB_OUTPUT
+          echo "author=$(echo "$PR" | jq -r .author.login)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Gate (allowlist + draft + author + secrets)
+        id: gate
+        if: steps.pr.outputs.skip != '1'
+        run: |
+          set -e
+          N=${{ steps.pr.outputs.number }}
+          if [ "${{ steps.pr.outputs.draft }}" = "true" ]; then
+            echo "Draft, skip."; echo "ok=0" >> $GITHUB_OUTPUT; exit 0
+          fi
+          case "${{ steps.pr.outputs.author }}" in
+            {{REPO_OWNER}}|app/github-actions) ;;
+            *) echo "Autor fora da allowlist."
+               echo "ok=0" >> $GITHUB_OUTPUT; exit 0;;
+          esac
+          BAD=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              docs/*|.planning/frentes/*|registro-construcao.md|.project-structure.md|.todos-report.md) ;;
+              *) echo "Fora do Tier S: $f"; BAD=1;;
+            esac
+          done < <(gh pr view "$N" -R "$GITHUB_REPOSITORY" --json files -q '.files[].path')
+          if [ "$BAD" = "1" ]; then
+            echo "Diff toca Tier H. Fluxo humano."
+            echo "ok=0" >> $GITHUB_OUTPUT; exit 0
+          fi
+          if gh pr diff "$N" -R "$GITHUB_REPOSITORY" \
+             | grep -qE 'sk-ant-|pk_live_|sbp_|ghp_|EAA[A-Za-z0-9]{60,}'; then
+            echo "Segredo no diff. Bloqueado."
+            echo "ok=0" >> $GITHUB_OUTPUT; exit 0
+          fi
+          echo "ok=1" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve + squash merge
+        if: steps.gate.outputs.ok == '1'
+        run: |
+          set -e
+          N=${{ steps.pr.outputs.number }}
+          gh pr review "$N" -R "$GITHUB_REPOSITORY" --approve \
+            --body "Tier S (conteúdo inerte). CI verde, sem segredo, autor confiável. Auto-aprovado (07-merge-seguro.md)."
+          gh pr merge "$N" -R "$GITHUB_REPOSITORY" --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

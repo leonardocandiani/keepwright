@@ -1,0 +1,36 @@
+# Invariantes do {{PROJETO}}
+
+Regras que **nunca** podem ser violadas. Se uma mudança fere qualquer invariante, ela é rejeitada, sem exceção.
+
+> Template — preencher com regras do domínio. Exemplos abaixo.
+
+## Sobre o produto
+
+1. **{{REGRA_NEGOCIO_1}}** — exemplo: "Toda transação financeira passa por idempotência via X-Idempotency-Key"
+2. **{{REGRA_NEGOCIO_2}}** — exemplo: "Estado do pedido só transita via state machine, nunca update direto"
+3. **{{REGRA_NEGOCIO_3}}**
+
+## Sobre dados sensíveis
+
+4. **Secrets nunca no código.** Tokens, API keys, senhas só em `.env` (gitignored) ou serviço de segredos.
+5. **PII em logs = proibido.** CPF, telefone, email só ofuscado.
+6. **DB queries sempre parametrizadas.** Concatenação de string com input do usuário = SQL injection.
+
+## Sobre commits
+
+7. **Commits sem autorização explícita = proibido.** Resposta vaga ("ok", "boa") não é autorização. Só "commita" / "faz commit" / "pode commitar".
+8. **`--no-verify` proibido.** Hook que falha = diagnosticar, não pular.
+9. **Mencionar IA/Claude em commit ou código = proibido.** Autor sempre humano.
+
+## Sobre user-facing content
+
+10. **Acentuação correta em PT-BR.** "não", "você", "é", "também". Nunca ASCII em conteúdo de leitura humana.
+11. **Sem jargão técnico em UI.** Lista negra adaptada ao domínio.
+
+## Sobre pipelines críticos
+
+12. **{{PIPELINE_CRITICO}}** — exemplo: "Pagamentos sempre via webhook do gateway, nunca consultar status sob demanda"
+
+---
+
+**Catalisação:** se um bug novo violou um invariante e o invariante já estava aqui, o bug é o problema. Se o invariante não existia, **catalisa imediatamente** após o fix mergeado.

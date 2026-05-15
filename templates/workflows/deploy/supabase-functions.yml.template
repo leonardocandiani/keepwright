@@ -1,0 +1,72 @@
+name: Deploy (Supabase Edge Functions)
+
+# Stack: Supabase edge functions (Deno).
+# Dispara só PÓS-merge na main, e só se mexeu em supabase/functions/**.
+# Deploya apenas as functions que mudaram (não redeploya tudo).
+#
+# Secrets necessários (gh secret set ... -R {{REPO}}):
+#   SUPABASE_ACCESS_TOKEN  - token de acesso (supabase login)
+# Variável:
+#   SUPABASE_PROJECT_REF   - ref do projeto (ajuste abaixo)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+    inputs:
+      function:
+        description: 'Nome da function (vazio = todas as alteradas)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_PROJECT_REF: '{{SUPABASE_PROJECT_REF}}'
+
+jobs:
+  deploy:
+    name: Deploy to Supabase
+    runs-on: ubuntu-latest
+    if: github.repository == '{{REPO}}'
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 2 }
+
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+
+      - name: Login
+        run: supabase login --token "$SUPABASE_ACCESS_TOKEN"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Detect changed functions
+        id: changed
+        run: |
+          set -e
+          if [ "${{ github.event.inputs.function }}" != "" ]; then
+            echo "fns=${{ github.event.inputs.function }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} \
+            | grep "^supabase/functions/" \
+            | awk -F/ '{print $3}' \
+            | sort -u \
+            | grep -v "^_shared$" \
+            | tr '\n' ' ')
+          echo "fns=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed: $CHANGED"
+
+      - name: Deploy
+        if: steps.changed.outputs.fns != ''
+        run: |
+          set -e
+          for fn in ${{ steps.changed.outputs.fns }}; do
+            echo "::group::Deploy $fn"
+            supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
+            echo "::endgroup::"
+          done

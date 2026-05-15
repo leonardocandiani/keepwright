@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Type check ────────────────────────────────────────────────────────
+  # Adapte o comando conforme stack:
+  #   Node/TypeScript:  npx tsc --noEmit
+  #   Deno:             deno check **/*.ts
+  #   Python:           mypy .
+  type-check:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2  # ou setup-node@v4, ou setup-deno@v2, ou setup-python@v5
+        with: { bun-version: latest }
+      - run: bun install
+      - run: bunx tsc --noEmit
+        # CUSTOMIZE: troque pra `bun run type-check` se tiver script
+
+  # ─── Lint ──────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun run lint
+        # CUSTOMIZE: eslint/biome/ruff/etc
+
+  # ─── Validators custom ─────────────────────────────────────────────────
+  validators:
+    name: Validators
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - name: Run validators
+        run: |
+          if [ -d scripts/validators ]; then
+            for v in scripts/validators/*.ts; do
+              [ -f "$v" ] && bun run "$v"
+            done
+          fi
+
+  # ─── Tests (opcional) ──────────────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.test.ts', '**/*.spec.ts') != ''
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun test

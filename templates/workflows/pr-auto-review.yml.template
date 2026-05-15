@@ -1,0 +1,118 @@
+name: PR Auto-Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  # ─── Heurísticas rápidas (sempre rodam, baratas, sem custo de IA) ──────
+  auto-review:
+    name: Auto-review heurístico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+
+      - name: Get changed files
+        id: changes
+        run: |
+          gh pr view ${{ github.event.pull_request.number }} --json files -q '.files[].path' > changed_files.txt
+          echo "count=$(wc -l < changed_files.txt)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # CUSTOMIZE: substitua os patterns por arquivos críticos do projeto
+      - name: Detect critical layer changes
+        id: critical
+        run: |
+          if grep -qE "(types/|schemas/|migrations/)" changed_files.txt; then
+            echo "schema_changed=true" >> $GITHUB_OUTPUT
+          fi
+          if grep -qE "api/.+/route\.(ts|js)" changed_files.txt; then
+            echo "api_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Warn schema sem migration
+        if: steps.critical.outputs.schema_changed == 'true'
+        run: |
+          if ! grep -qE "migrations/" changed_files.txt; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **Equalização incompleta** — schema/types alterado sem migration correspondente. Ver \`.claude/rules/02-equalizacao-pipeline.md\`."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # CUSTOMIZE: substitua "TERMO1|TERMO2" pelos termos proibidos do projeto
+      - name: Check banned terms in diff
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          BANNED=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- '*.ts' '*.tsx' '*.js' '*.md' \
+            | grep -E "^\+" \
+            | grep -iE "TERMO1|TERMO2" \
+            | head -5)
+          if [ -n "$BANNED" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **Lista negra de termos detectada no diff**: $BANNED. Ver \`.claude/rules/01-invariantes.md\`."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          FILES=$(wc -l < changed_files.txt)
+          gh pr comment ${{ github.event.pull_request.number }} --body "🤖 **Heurística concluída** — $FILES arquivos. Aguardando Claude review (se key configurada) e CODEOWNERS."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── Guard: graceful degradation se o token não estiver configurado ───
+  # AUTENTICAÇÃO: prioridade OAuth (CLAUDE_CODE_OAUTH_TOKEN).
+  # Obter: rodar `claude setup-token` no terminal -> gera sk-ant-oat01-...
+  # Setar:  gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>
+  # Sem o secret, os jobs de IA skipam sem quebrar o PR.
+  check-key:
+    name: Check Claude token
+    runs-on: ubuntu-latest
+    outputs:
+      has_key: ${{ steps.check.outputs.has_key }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]; then
+            echo "has_key=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_key=false" >> $GITHUB_OUTPUT
+          fi
+
+  # ─── Claude AI review (rico). Skipa graceful se token ausente ─────────
+  claude-review:
+    name: Claude AI review
+    runs-on: ubuntu-latest
+    needs: check-key
+    if: ${{ needs.check-key.outputs.has_key == 'true' && !github.event.pull_request.draft }}
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 1 }
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Você é o revisor automático de {{PROJETO}}. Faça uma review COMPLETA do PR seguindo:
+
+            1. **Constituição:** leia `CLAUDE.md` (índice + invariantes sempre-carregados).
+            2. **Invariantes:** `.claude/rules/01-invariantes.md`. Toda violação bloqueia.
+            3. **Equalização:** `.claude/rules/02-equalizacao-pipeline.md`. Se a mudança toca 1 camada quando deveria tocar o conjunto coerente, comente.
+            4. **Hierarquia epistêmica:** `.claude/rules/03-hierarquia-epistemica.md`. Justificativa "isso não pode acontecer porque o código X" é P5 (fraca). Exija sintoma/log/DB.
+            5. **Merge seguro:** `.claude/rules/07-merge-seguro.md`. Não recomende merge sem `mergeStateStatus CLEAN`.
+            6. **Catalisação:** se o PR introduz convenção nova, exija `docs/licoes/L-XXX.md` correspondente.
+            7. **Secrets:** se detectar `sk-ant-`, `sk-ant-oat01-`, `pk_live_`, `ghp_`, chave privada, bloqueie imediatamente.
+
+            Comente no PR via gh CLI, linguagem direta, sem floreio. Não duplique o que a heurística já comentou. Foca em: decisões arquiteturais questionáveis, camada vizinha não ratificada, risco de regressão, invariante violado.
+          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

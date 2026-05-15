@@ -1,0 +1,51 @@
+name: Deploy (Vercel)
+
+# Stack: Next.js / Vite / SPA hospedado na Vercel.
+# Dispara só PÓS-merge na main (deploy nunca roda no PR).
+#
+# Secrets necessários (gh secret set ... -R {{REPO}}):
+#   VERCEL_TOKEN       - token de conta Vercel
+#   VERCEL_ORG_ID      - id da org (vercel project ls / .vercel/project.json)
+#   VERCEL_PROJECT_ID  - id do projeto
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'app/**'
+      - 'public/**'
+      - 'package.json'
+      - 'next.config.*'
+      - 'vite.config.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Vercel production
+    runs-on: ubuntu-latest
+    if: github.repository == '{{REPO}}'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Pull env + build
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy prebuilt
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

@@ -1,0 +1,33 @@
+{
+  "//": "settings de projeto {{PROJETO}}. Gerado pela skill setup-projeto-qualidade.",
+
+  "//attribution": "Commits e PRs nunca atribuem nada a IA/assistente. Regra dura: autor e o mantenedor humano. NAO REMOVER sem decisao explicita.",
+  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+
+  "//agents": "Agentes project-scoped vivem em .claude/agents/. O worker usa isolation:worktree (este projeto e git, garantido no setup), entao paraleliza implementacao sem sujar o working tree.",
+
+  "//worktree": "Worktree isolation funciona nativo aqui porque o projeto e um repo git. Nenhum hook WorktreeCreate necessario.",
+
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(echo:*)",
+      "Bash(mkdir:*)",
+      "Bash(chmod:*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Grep",
+      "Glob"
+    ]
+  }
+}

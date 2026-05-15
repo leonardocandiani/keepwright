@@ -1,0 +1,68 @@
+# Lefthook config — git hooks portáveis.
+# Doc: https://github.com/evilmartians/lefthook
+# Instalar: `npm i -D lefthook` ou `brew install lefthook` + `lefthook install`
+
+pre-commit:
+  parallel: true
+  commands:
+    validators:
+      glob: "{{GLOB_FONTE}}"  # ex: "supabase/functions/**/*.ts" ou "src/**/*.ts"
+      run: bash scripts/validators/run-all.sh
+    type-check:
+      glob: "*.ts"
+      run: "{{CMD_TYPECHECK}}"
+      # Exemplos:
+      #   Deno:    deno check {staged_files}
+      #   Node TS: bunx tsc --noEmit {staged_files}
+      #   Python:  uvx mypy {staged_files}
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: |
+        # Bloqueia mensagem que não segue Conventional Commits
+        MSG_FILE="$1"
+        MSG=$(head -1 "$MSG_FILE")
+        if ! echo "$MSG" | grep -qE "^(feat|fix|refactor|docs|style|test|chore|perf|init|wip)(\([a-z0-9-]+\))?: .+"; then
+          echo "❌ Commit message não segue Conventional Commits."
+          echo "   Padrão: tipo(escopo)?: descrição"
+          echo "   Tipos: feat | fix | refactor | docs | style | test | chore | perf | init | wip"
+          exit 1
+        fi
+    no-ai-mention:
+      run: |
+        # Bloqueia menção a IA/Claude (regra padrão de autor humano)
+        MSG=$(head -1 "$1")
+        if echo "$MSG" | grep -qiE "(claude|ai\s+gen|gpt|copilot|cursor|sonnet|opus)"; then
+          echo "❌ Commit message menciona IA. Autor humano, sem referência a ferramenta."
+          exit 1
+        fi
+
+pre-push:
+  commands:
+    no-direct-to-main:
+      run: |
+        # Bloqueia push direto pra main (sem PR).
+        # Bypass excepcional: LEFTHOOK_ALLOW_MAIN_PUSH=1
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [[ "$BRANCH" == "main" ]]; then
+          if [[ -z "$LEFTHOOK_ALLOW_MAIN_PUSH" ]]; then
+            echo "❌ Push direto pra main bloqueado. Abre PR via 'gh pr create'."
+            echo "   Bypass excepcional: LEFTHOOK_ALLOW_MAIN_PUSH=1 git push"
+            exit 1
+          fi
+        fi
+    no-force-push:
+      run: |
+        # Bloqueia force-push em main e exige bypass em outras branches.
+        if echo "$LEFTHOOK_PUSH_OPTIONS" | grep -q "force"; then
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "❌ Force-push pra main NUNCA é permitido."
+            exit 1
+          fi
+          if [[ -z "$LEFTHOOK_ALLOW_FORCE" ]]; then
+            echo "❌ Force-push bloqueado. Bypass: LEFTHOOK_ALLOW_FORCE=1 git push --force"
+            exit 1
+          fi
+        fi

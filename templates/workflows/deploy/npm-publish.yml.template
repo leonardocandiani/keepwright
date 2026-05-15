@@ -1,0 +1,47 @@
+name: Deploy (npm publish)
+
+# Stack: biblioteca/pacote publicado no npm.
+# Dispara só em tag de release (vX.Y.Z). Nunca publica de push direto.
+#
+# Secret necessário (gh secret set ... -R {{REPO}}):
+#   NPM_TOKEN  - automation token do npm (npmjs.com -> Access Tokens)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    if: github.repository == '{{REPO}}'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - name: Build (se houver)
+        run: npm run build --if-present
+
+      - name: Tag bate com package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag $TAG != package.json $PKG"; exit 1
+          fi
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

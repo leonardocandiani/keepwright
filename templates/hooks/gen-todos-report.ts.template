@@ -1,0 +1,116 @@
+#!/usr/bin/env bun
+/**
+ * gen-todos-report.ts
+ *
+ * Coleta TODO/FIXME/HACK/XXX no codebase, agrupa por tipo, gera .todos-report.md.
+ * Roda manual ou via hook pré-commit.
+ */
+
+import { readdir, readFile, writeFile, stat } from "node:fs/promises";
+import { join, relative } from "node:path";
+
+const ROOT = decodeURIComponent(new URL("../..", import.meta.url).pathname);
+
+const IGNORE_DIRS = new Set([
+  ".git",
+  "node_modules",
+  ".next",
+  ".vercel",
+  "dist",
+  "build",
+  ".turbo",
+  ".deno",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".cache",
+  ".pytest_cache",
+  "coverage",
+  "tmp",
+  "_temp",
+]);
+
+const EXTS = new Set([".ts", ".tsx", ".js", ".jsx", ".py", ".md", ".sql", ".sh", ".yml", ".yaml"]);
+
+const PATTERNS = [
+  { tag: "BUG", regex: /\b(BUG|FIXME)\s*[:!]?\s*(.+)$/i },
+  { tag: "TODO", regex: /\bTODO\s*[:!]?\s*(.+)$/i },
+  { tag: "HACK", regex: /\b(HACK|XXX)\s*[:!]?\s*(.+)$/i },
+  { tag: "NOTE", regex: /\bNOTE\s*[:!]?\s*(.+)$/i },
+];
+
+interface Hit {
+  tag: string;
+  file: string;
+  line: number;
+  msg: string;
+}
+
+async function walk(dir: string, acc: Hit[] = []): Promise<Hit[]> {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return acc;
+  }
+
+  for (const e of entries) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) {
+      if (IGNORE_DIRS.has(e.name)) continue;
+      await walk(full, acc);
+    } else {
+      const ext = e.name.substring(e.name.lastIndexOf("."));
+      if (!EXTS.has(ext)) continue;
+      try {
+        const content = await readFile(full, "utf-8");
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          for (const p of PATTERNS) {
+            const m = p.regex.exec(lines[i]);
+            if (m) {
+              acc.push({
+                tag: p.tag,
+                file: relative(ROOT, full),
+                line: i + 1,
+                msg: (m[2] || m[1]).trim().substring(0, 200),
+              });
+            }
+          }
+        }
+      } catch {
+        /* ignora */
+      }
+    }
+  }
+  return acc;
+}
+
+async function main() {
+  const hits = await walk(ROOT);
+
+  const byTag: Record<string, Hit[]> = { BUG: [], TODO: [], HACK: [], NOTE: [] };
+  for (const h of hits) byTag[h.tag].push(h);
+
+  let out = `# TODOs Report
+
+> Auto-gerado por \`scripts/hooks/gen-todos-report.ts\`. **Não editar manualmente.**
+
+Última atualização: ${new Date().toISOString().slice(0, 10)}
+Total: ${hits.length} (BUG: ${byTag.BUG.length}, TODO: ${byTag.TODO.length}, HACK: ${byTag.HACK.length}, NOTE: ${byTag.NOTE.length})
+
+`;
+
+  for (const tag of ["BUG", "TODO", "HACK", "NOTE"]) {
+    if (byTag[tag].length === 0) continue;
+    out += `\n## ${tag} (${byTag[tag].length})\n\n`;
+    for (const h of byTag[tag]) {
+      out += `- [\`${h.file}:${h.line}\`](${h.file}#L${h.line}) — ${h.msg}\n`;
+    }
+  }
+
+  await writeFile(join(ROOT, ".todos-report.md"), out, "utf-8");
+  console.log(`✅ .todos-report.md atualizado (${hits.length} entradas).`);
+}
+
+main();

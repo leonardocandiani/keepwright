@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussão geral
+    url: https://github.com/leonardocandiani/setup-projeto-qualidade/discussions
+    about: Para dúvidas, ideias ou conversa aberta sobre a skill
+  - name: Site do autor
+    url: https://leonardocandiani.com.br
+    about: Contato direto e outros projetos

@@ -1,0 +1,54 @@
+name: Deploy (GitHub Pages)
+
+# Stack: site estático (build → HTML/CSS/JS). Publica no GitHub Pages.
+# Dispara pós-merge na main. Nenhum secret necessário (usa Pages nativo).
+#
+# Pré-requisito: Settings → Pages → Source = GitHub Actions (uma vez, manual).
+# Ajuste BUILD_DIR pro diretório de saída do seu build.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  BUILD_DIR: '{{BUILD_DIR}}'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: github.repository == '{{REPO}}'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with: { node-version: lts/* }
+
+      - run: npm ci
+      - run: npm run build --if-present
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.BUILD_DIR }}
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

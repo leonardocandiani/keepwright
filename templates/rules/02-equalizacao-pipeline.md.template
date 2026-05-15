@@ -1,0 +1,74 @@
+# Equalização do Pipeline — {{PROJETO}}
+
+Mudança no pipeline nunca toca 1 camada — toca o conjunto coerente. Pular camada = bug silencioso.
+
+> Template — adapte as camadas pra arquitetura real do projeto. Exemplos abaixo pra stacks comuns.
+
+## As N camadas
+
+### Para Next.js + DB
+
+```
+C1  TYPES / SCHEMAS     src/types/, src/schemas/
+C2  DB MIGRATIONS       drizzle/migrations/, supabase/migrations/
+C3  REPOSITORIES        src/repositories/ (acesso DB)
+C4  SERVICES            src/services/ (regra de negócio)
+C5  SERVER ACTIONS      src/app/.../actions.ts
+C6  API ROUTES          src/app/api/.../route.ts
+C7  HOOKS               src/hooks/ (cliente)
+C8  COMPONENTS          src/components/
+C9  PAGES               src/app/.../page.tsx
+C10 STATE GLOBAL        src/stores/, contexts
+C11 INTEGRAÇÕES EXT     APIs terceiros
+```
+
+### Para LLM agent + tools
+
+```
+C1  PERSONA / PROMPT     prompts/, persona/
+C2  TOOLS SPEC           tools/spec.ts (JSON schemas)
+C3  TOOL HANDLERS        tools/handlers.ts
+C4  AGENT LOOP           agent.ts (orchestrator)
+C5  WEBHOOK / ENTRY      api/webhook/
+C6  DB ESTADO            tabelas de conversa, contexto
+C7  INTEGRAÇÕES          LLM provider, voz, mensageria
+```
+
+### Para CLI / serviço backend
+
+```
+C1  TYPES / DOMAIN       src/types/
+C2  DB / STORAGE         src/storage/
+C3  SERVICES             src/services/
+C4  COMMANDS / HANDLERS  src/commands/
+C5  HTTP / IPC LAYER     src/http/, src/ipc/
+C6  CONFIG / ENV         config/
+C7  INTEGRAÇÕES          external APIs
+```
+
+## Sequências obrigatórias por tipo de mudança
+
+### Adicionar entidade nova
+1. Types/schemas (C1)
+2. Migration (C2)
+3. Repository/storage (C3)
+4. Service (C4)
+5. API/handler (C5/C6)
+6. UI (C7-C9)
+7. Smoke test E2E
+
+### Alterar fluxo crítico
+1. Mapear todas camadas tocadas ANTES de codar
+2. Cada camada tem teste isolado
+3. Smoke test do fluxo completo
+
+## Anti-pattern: merge parcial
+
+❌ "Toquei só a API, esqueci de atualizar a UI" → contrato quebra em produção
+❌ "Mudei o tipo, esqueci de migrar o DB" → erro de hidratação
+
+**Antes de abrir PR:** lista mental "toquei C1-CN onde precisava? validei coerência?".
+
+## Onde catalogar mudança grande
+
+Toda mudança que atinge **3+ camadas** vira `docs/casos-referencia/YYYY-MM-DD-titulo.md` documentando camadas tocadas e decisões.
