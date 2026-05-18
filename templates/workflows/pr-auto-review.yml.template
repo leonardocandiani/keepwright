@@ -10,11 +10,14 @@ permissions:
   issues: write
   id-token: write
 
+concurrency:
+  group: pr-auto-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  # ─── Heurísticas rápidas (sempre rodam, baratas, sem custo de IA) ──────
   auto-review:
     name: Auto-review heurístico
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
@@ -27,55 +30,86 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # CUSTOMIZE: substitua os patterns por arquivos críticos do projeto
       - name: Detect critical layer changes
         id: critical
         run: |
-          if grep -qE "(types/|schemas/|migrations/)" changed_files.txt; then
+          if grep -qE "(src/utils/types|src/utils/schemas)" changed_files.txt; then
             echo "schema_changed=true" >> $GITHUB_OUTPUT
           fi
-          if grep -qE "api/.+/route\.(ts|js)" changed_files.txt; then
-            echo "api_changed=true" >> $GITHUB_OUTPUT
+          if grep -qE "src/whatsapp/sender\.ts" changed_files.txt; then
+            echo "sender_changed=true" >> $GITHUB_OUTPUT
+          fi
+          if grep -qE "src/runtime/(claude-interactive|invoker-stream)\.ts" changed_files.txt; then
+            echo "runtime_changed=true" >> $GITHUB_OUTPUT
+          fi
+          if grep -qE "\.claude/rules/" changed_files.txt; then
+            echo "rules_changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Warn schema sem migration
-        if: steps.critical.outputs.schema_changed == 'true'
+      # CUSTOMIZE: substitua sender_changed/runtime_changed por warnings dos
+      # SEUS arquivos críticos. O exemplo abaixo é genérico — adapte invariantes
+      # mencionados aos do seu projeto.
+      - name: Warn arquivo crítico 1 alterado
+        if: steps.critical.outputs.sender_changed == 'true'
         run: |
-          if ! grep -qE "migrations/" changed_files.txt; then
-            gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **Equalização incompleta** — schema/types alterado sem migration correspondente. Ver \`.claude/rules/02-equalizacao-pipeline.md\`."
-          fi
+          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{ARQUIVO_CRITICO_1}} alterado** — confirmar invariantes {{INVARIANTES_REFS}} em \`.claude/rules/01-invariantes.md\`. Smoke E2E obrigatório."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # CUSTOMIZE: substitua "TERMO1|TERMO2" pelos termos proibidos do projeto
-      - name: Check banned terms in diff
+      - name: Warn arquivo crítico 2 alterado
+        if: steps.critical.outputs.runtime_changed == 'true'
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          BANNED=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- '*.ts' '*.tsx' '*.js' '*.md' \
+          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{ARQUIVO_CRITICO_2}} alterado** — confirmar invariantes {{INVARIANTES_REFS}}. Smoke E2E obrigatório."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check banned terms in diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch origin "$BASE_REF"
+          # Skip self-referencing files: workflows e rules mencionam patterns
+          # de detecção como referência educacional, não como secret real.
+          BANNED=$(git diff "origin/$BASE_REF...HEAD" \
+            -- '*.ts' '*.md' '*.json' ':!.github/workflows/*.yml' ':!.claude/rules/*.md' \
             | grep -E "^\+" \
-            | grep -iE "TERMO1|TERMO2" \
+            | grep -E "Claude <noreply@anthropic|Co-Authored-By: Claude|sk-ant-(api|oat)[0-9]{2}-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{30,}|pk_live_[A-Za-z0-9]{20,}|sk_live_[A-Za-z0-9]{20,}" \
             | head -5)
           if [ -n "$BANNED" ]; then
-            gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **Lista negra de termos detectada no diff**: $BANNED. Ver \`.claude/rules/01-invariantes.md\`."
+            gh pr comment "$PR_NUMBER" --body "🚨 **Termos proibidos detectados** no diff (autoria Claude real ou shape de secret). Ver \`.claude/rules/01-invariantes.md\` §3 e §6."
+            exit 1
           fi
+
+      - name: Setup Bun (validators)
+        uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+
+      - name: Validate hierarquia epistêmica
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          COMMIT_MESSAGES=$(git log --format='%B' origin/${{ github.event.pull_request.base.ref }}..HEAD)
+          export COMMIT_MESSAGES
+          bun run scripts/validators/validate-hierarquia-epistemica.ts
+
+      - name: Validate webhook ativo (L-001)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run scripts/validators/validate-webhook-active.ts
 
       - name: Summary
         run: |
           FILES=$(wc -l < changed_files.txt)
-          gh pr comment ${{ github.event.pull_request.number }} --body "🤖 **Heurística concluída** — $FILES arquivos. Aguardando Claude review (se key configurada) e CODEOWNERS."
+          gh pr comment ${{ github.event.pull_request.number }} --body "🤖 **Heurística concluída** — $FILES arquivos. Validators (hierarquia + webhook) verdes. Aguardando Claude review (se token configurado) e aprovação humana."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─── Guard: graceful degradation se o token não estiver configurado ───
-  # AUTENTICAÇÃO: prioridade OAuth (CLAUDE_CODE_OAUTH_TOKEN).
-  # Obter: rodar `claude setup-token` no terminal -> gera sk-ant-oat01-...
-  # Setar:  gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>
-  # Sem o secret, os jobs de IA skipam sem quebrar o PR.
   check-key:
     name: Check Claude token
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     outputs:
       has_key: ${{ steps.check.outputs.has_key }}
     steps:
@@ -87,32 +121,77 @@ jobs:
             echo "has_key=false" >> $GITHUB_OUTPUT
           fi
 
-  # ─── Claude AI review (rico). Skipa graceful se token ausente ─────────
   claude-review:
-    name: Claude AI review
-    runs-on: ubuntu-latest
+    name: Claude AI review (informacional)
+    runs-on: [self-hosted, linux, x64]
     needs: check-key
     if: ${{ needs.check-key.outputs.has_key == 'true' && !github.event.pull_request.draft }}
+    timeout-minutes: 20
+    # 18/05: step com continue-on-error até token OAuth dedicado ser gerado
+    # via `claude setup-token` em sessão isolada. Tokens compartilhados entre
+    # Aureleo runtime (plist MacAir) e claude-code-action são revogados
+    # mutuamente — cada setup-token invalida o anterior. Task #117.
+    # Retry duplo (id review-1 + review-2) com sleep 30s entre — mitiga bugs
+    # upstream do claude-code-action (AJV crash, fd 4 directory mismatch,
+    # error_max_turns). Fallback comment sinaliza Code Review Diretor manual
+    # se ambas tentativas falharem.
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 1 }
 
-      - name: Claude Code Review
+      - name: Claude Code Review (tentativa 1)
+        id: review-1
+        continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Você é o revisor automático de {{PROJETO}}. Faça uma review COMPLETA do PR seguindo:
+            Você é o revisor automático de {{PROJETO}}. Faça review COMPLETA do PR.
 
-            1. **Constituição:** leia `CLAUDE.md` (índice + invariantes sempre-carregados).
-            2. **Invariantes:** `.claude/rules/01-invariantes.md`. Toda violação bloqueia.
-            3. **Equalização:** `.claude/rules/02-equalizacao-pipeline.md`. Se a mudança toca 1 camada quando deveria tocar o conjunto coerente, comente.
-            4. **Hierarquia epistêmica:** `.claude/rules/03-hierarquia-epistemica.md`. Justificativa "isso não pode acontecer porque o código X" é P5 (fraca). Exija sintoma/log/DB.
-            5. **Merge seguro:** `.claude/rules/07-merge-seguro.md`. Não recomende merge sem `mergeStateStatus CLEAN`.
-            6. **Catalisação:** se o PR introduz convenção nova, exija `docs/licoes/L-XXX.md` correspondente.
-            7. **Secrets:** se detectar `sk-ant-`, `sk-ant-oat01-`, `pk_live_`, `ghp_`, chave privada, bloqueie imediatamente.
+            **Constituição (single source of truth):** `REVIEW.md` raiz repo. Contém princípios canônicos §2.X (lições catalisadas), critérios de merge §3, output format §8, fallback canônico §9. LEIA ANTES de comentar.
 
-            Comente no PR via gh CLI, linguagem direta, sem floreio. Não duplique o que a heurística já comentou. Foca em: decisões arquiteturais questionáveis, camada vizinha não ratificada, risco de regressão, invariante violado.
+            **Rules secundárias:** `.claude/rules/0[1-7]-*.md` quando precisar de detalhe.
+
+            **Output OBRIGATÓRIO** (formato em REVIEW.md §8):
+            ```
+            ## Status
+            APROVADO | APROVADO COM RESSALVAS | REPROVADO
+            ## Camadas tocadas
+            ## Achados críticos (bloqueia)
+            ## Achados ressalva (comenta)
+            ## Recomendação
+            ```
+
+            Comente no PR via `gh pr comment`. Linguagem direta, português acentuado, sem floreio. Não duplique heurística do auto-review (que já rodou). Foca em: decisões arquiteturais questionáveis, camada vizinha não ratificada, risco de regressão, invariante violado, inversão hierárquica P5→P1.
           claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sleep antes retry
+        if: steps.review-1.outcome == 'failure'
+        run: sleep 30
+
+      - name: Claude Code Review (tentativa 2)
+        id: review-2
+        if: steps.review-1.outcome == 'failure'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Você é o revisor automático de {{PROJETO}}. Tentativa 2 (tentativa 1 falhou).
+
+            **Constituição (single source of truth):** `REVIEW.md` raiz repo. LEIA ANTES de comentar. Output format §8.
+
+            Comente no PR via `gh pr comment`.
+          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fallback — sinalizar Code Review Diretor manual
+        if: steps.review-1.outcome == 'failure' && steps.review-2.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR_NUMBER" --body "⚠️ **Claude AI review falhou 2 tentativas** (bugs upstream conhecidos: AJV crash, max-turns, App token 401, fd 4 mismatch). Acionar **Code Review Diretor manual** conforme REVIEW.md §9 — 4 sub-agents READ-ONLY em paralelo (architect / reviewer / quality-engineer / deep-research-agent). Veredicto consolidado pelo coordenador tem MESMO peso do automático."

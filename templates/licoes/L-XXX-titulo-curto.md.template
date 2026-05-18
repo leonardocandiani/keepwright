@@ -1,0 +1,72 @@
+# L-XXX — {{TITULO_CURTO}}
+
+**Data:** {{DATA_YYYY_MM_DD}}
+**PR:** #{{NUMERO_PR}}
+**Camadas afetadas:** {{CAMADAS_REF}} (ver `.claude/rules/02-equalizacao-pipeline.md`)
+**Severidade:** {{alta|média|baixa}}
+
+## Sintoma (P1)
+
+O que o mantenedor (ou usuário em produção) viu. Nas palavras dele,
+screenshot, transcrição, log colado. Esse bloco é a fonte primária e
+NUNCA pode ser refutado por níveis inferiores da hierarquia
+(`.claude/rules/03-hierarquia-epistemica.md`).
+
+> {{TRANSCRICAO_OU_LOG_VERBATIM}}
+
+## Investigação
+
+Caminho descendente P1 → P5. Cada nível confirma ou refuta hipótese.
+
+- **P1 — Sintoma:** {{descricao}}
+- **P2 — Logs em produção:** {{evidencia_logs}}
+- **P3 — Estado DB:** {{snapshot_db}}
+- **P4 — Código:** {{trecho_codigo_relevante}}
+- **P5 — Auditoria/inferência:** {{static_analysis}} (mais fraco que P4)
+
+## Causa raiz
+
+Onde o bug nasceu. Não "esqueci de chamar X", mas POR QUÊ era fácil
+esquecer (ex: nome do método não sugeria importância, ausência de
+validator, prompt ambíguo, contrato externo mudou silenciosamente).
+
+{{CAUSA_RAIZ_TECNICA}}
+
+## Fix
+
+O que mudou. Diff resumido ou referência de commit.
+
+- Commit: {{SHA_DO_FIX}}
+- Arquivos tocados:
+  - `{{arquivo_1}}`
+  - `{{arquivo_2}}`
+
+## Prevenção daqui pra frente
+
+O que adicionamos pra esse bug não voltar:
+
+- [ ] Validator novo em `scripts/validators/validate-{{slug}}.ts`?
+- [ ] Rule nova em `.claude/rules/`?
+- [ ] Invariante novo em `.claude/rules/01-invariantes.md`?
+- [ ] Smoke test E2E em `tests/`?
+- [ ] Entrada nova em `REVIEW.md §2.X`?
+- [ ] Tipo no TypeScript fica menos permissivo?
+
+## Quando essa lição se aplica
+
+Lista de situações futuras onde esse aprendizado vale:
+
+- {{situacao_1}}
+- {{situacao_2}}
+
+## Pattern reusable
+
+{{GENERALIZACAO_DA_LICAO}} — formulação genérica que vale pra qualquer
+contexto similar, não só este projeto.
+
+## Refs cross-camada
+
+- Caso fundador: `docs/casos-referencia/{{slug}}-{{data}}.md` (se aplicável)
+- Princípio canônico: `REVIEW.md §2.X`
+- Rule local: `.claude/rules/{{NN-slug}}.md` (se gerou rule nova)
+- Validator: `scripts/validators/validate-{{slug}}.ts` (se gerou validator)
