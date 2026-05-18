@@ -139,6 +139,54 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
 
 Ao final, instruir o setup do OAuth token (seção "Autenticação Claude").
 
+### Fase 4.5 — Rodar as GitHub Actions localmente (self-hosted, zera minutos)
+
+GitHub Free dá 2000 min/mês de runner hospedado em repo privado. Acabou a
+cota, o CI para. **Runner self-hosted não conta nesse limite** (ilimitado,
+qualquer visibilidade de repo). A ideia: o GitHub continua orquestrando
+(triggers, secrets, UI, branch protection), mas a **execução roda numa
+máquina sua**.
+
+**Onde rodar.** Qualquer coisa com Docker e saída pra internet:
+- um VPS/servidor Linux,
+- um box ocioso na sua infra,
+- ou a sua própria máquina local (o runner faz só conexão de saída pro
+  GitHub, não precisa de IP público nem porta aberta).
+
+O runner não precisa de VPN/malha pra funcionar, ele só fala HTTPS de saída
+com o GitHub. A malha (Tailscale/WG) só importa se você for administrar o
+host remoto por SSH.
+
+**Como.** `templates/scripts/setup-self-hosted-runner.sh <owner/repo>
+<host-ssh> <label>` sobe um runner containerizado
+(`myoung34/github-runner`, `--restart unless-stopped`), minta o token de
+registro via `gh api` (não persiste PAT) e registra no repo com um label.
+Rodar localmente: aponte o `<host-ssh>` pra `localhost` ou rode o
+`docker run` equivalente direto na máquina.
+
+**Apontar os jobs.** Nos workflows, troque `runs-on: ubuntu-latest` por
+`runs-on: [self-hosted, linux, x64]` nos jobs que vão pra máquina sua.
+GitHub casa por label (case-insensitive).
+
+**Segurança (inegociável).** SÓ em repo privado com colaboradores
+confiáveis. Repo público = PR de fork roda código arbitrário no seu host.
+Não furar isso.
+
+**Estratégias** (escolha conforme o projeto):
+- **Híbrido:** jobs pesados (type-check, validators, IA review) →
+  self-hosted; jobs leves/críticos/raros (guards, deploy, auto-merge) →
+  `ubuntu-latest`. ~95% dos minutos economizados, e se o host cair o
+  maquinário do PR + deploy seguem no GitHub.
+- **Full self-hosted + N runners redundantes:** TODOS os jobs →
+  `[self-hosted, linux, x64]`, e **2+ runners** (hosts diferentes) com o
+  **mesmo label**. Zero minuto GitHub E redundância: host cai, o outro
+  pega, jobs nunca falham por isso (no pior caso ficam em fila). Recomendado
+  quando você tem 2+ máquinas. Rode o `setup-self-hosted-runner.sh` uma vez
+  por host com o mesmo label.
+
+Se todos os runners estiverem offline, jobs self-hosted ficam **enfileirados
+(pending), não falham** — voltam a rodar quando um runner volta.
+
 ### Fase 5 — Validators portáveis
 
 Default (sempre instalados em `scripts/validators/`):
