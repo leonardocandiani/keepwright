@@ -1,0 +1,136 @@
+# REVIEW.md — Constituição consumida pelo Claude AI review
+
+> Single source of truth do workflow `pr-auto-review.yml` (step claude-review). Tudo aqui é princípio canônico, ranqueado por gravidade.
+>
+> **Substitua placeholders `{{...}}` pelo conteúdo do projeto.**
+
+---
+
+## 1. Sumário do projeto
+
+{{PROJETO_DESCRICAO_CURTA}}
+
+**Stack**: {{STACK}}
+**Camadas**: {{CAMADAS_REF}} (detalhe em `.claude/rules/02-equalizacao-pipeline.md`)
+
+---
+
+## 2. Princípios canônicos (lições catalisadas)
+
+> Adicione §2.1, §2.2, ... à medida que catalisar lições em `docs/licoes/L-XXX-*.md`. Mantenha ordem cronológica de catalisação.
+
+### 2.1. {{TITULO_LICAO}} (L-XXX)
+
+Catalisada após {{INCIDENTE_DATA}}. {{CAUSA_RAIZ_CURTA}}.
+
+**Princípio canônico**: {{REGRA_INVARIANTE}}.
+
+**Mitigação canônica**:
+1. {{COMPONENTE_1}}
+2. {{COMPONENTE_2}}
+3. {{COMPONENTE_3}}
+
+**Caso fundador**: `docs/casos-referencia/{{SLUG}}-{{DATA}}.md` ou `docs/licoes/L-XXX-{{SLUG}}.md`.
+
+---
+
+## 3. Critérios de merge canônicos
+
+### 3.1. Crítico — bloqueia merge
+
+- Secret hardcoded no diff (`sk-ant-(api|oat)\d{2}-`, `ghp_`, `pk_live_`, `sk_live_`)
+- Violação de invariante em `.claude/rules/01-invariantes.md`
+- Mudança que toca 1 camada quando deveria tocar conjunto (equalização)
+- Inversão hierárquica P5→P1 em PR body sem evidência cirúrgica adjacente
+- `--no-verify` usado sem aval explícito do mantenedor
+
+### 3.2. Ressalvas — comenta mas não bloqueia
+
+- Teste novo ausente em mudança de comportamento
+- Validator faltando após bug catalisado (>2 reincidências)
+- Doc de feature operacional sem bloco "Smoke E2E"
+
+### 3.3. Aprovação
+
+- `mergeStateStatus: CLEAN` obrigatório
+- Wrapper `scripts/gh-pr-merge-safe.sh` é o único caminho
+
+### 3.4. Hierarquia epistêmica
+
+P1 (sintoma reportado pelo mantenedor) > P2 (logs em prod) > P3 (estado DB) > P4 (código) > P5 (auditoria abstrata). Veredicto "ZERO bugs" sem reprodução cirúrgica do sintoma via 5 fontes empíricas = FALHA de investigação, NÃO veredicto válido.
+
+---
+
+## 4. Frentes entregues
+
+| Onda | Data | PR | Resultado |
+|---|---|---|---|
+| {{ONDA_N}} | {{DATA}} | #{{PR}} | {{DESCRICAO}} |
+
+---
+
+## 5. Validators ativos no CI
+
+| Validator | Roda em | Função |
+|---|---|---|
+| `validate-no-secrets.ts` | pre-commit + CI | grep agressivo de patterns secret |
+| `validate-claude-md-sync.ts` | pre-commit + CI | toda rule em `.claude/rules/` tem ponteiro no CLAUDE.md |
+| `validate-webhook-active.ts` | CI | webhook documentado existe em `gh api .../hooks` (L-001) |
+| `validate-hierarquia-epistemica.ts` | commit-msg + CI | linguagem P5→P1 sem evidência cirúrgica |
+
+---
+
+## 6. Vocabulário canônico
+
+{{VOCABULARIO_DO_PROJETO}}
+
+---
+
+## 7. Endpoints API + integrações
+
+{{ENDPOINTS_E_INTEGRACOES}}
+
+---
+
+## 8. Output format obrigatório do Review
+
+Comentário do Claude review deve estruturar:
+
+```markdown
+## Status
+
+APROVADO | APROVADO COM RESSALVAS | REPROVADO
+
+## Camadas tocadas
+
+- C/EXT-N: descrição
+
+## Achados críticos (bloqueia)
+
+- [ ] item
+
+## Achados ressalva (comenta)
+
+- [ ] item
+
+## Recomendação
+
+<1-3 linhas — merge confiante / aguarda fix / pede smoke E2E adicional>
+```
+
+Linguagem direta, sem floreio. Não duplica heurística do auto-review.
+
+---
+
+## 9. Fallback canônico
+
+Se `claude-code-action` falhar 2x consecutivas (bugs upstream conhecidos: AJV crash, max-turns, App token 401), executor aciona **Code Review Diretor manual**:
+
+```
+Task(subagent_type="architect",          prompt="<read-only audit arquitetural>")
+Task(subagent_type="reviewer",           prompt="<read-only review código+bugs>")
+Task(subagent_type="quality-engineer",   prompt="<read-only review testes+perf>")
+Task(subagent_type="deep-research-agent", prompt="<best practices+edge cases>")
+```
+
+Todos PARALELOS no mesmo response. Veredicto consolidado pelo coordenador tem MESMO peso do veredicto automático.

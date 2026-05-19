@@ -120,6 +120,17 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
 - `CLAUDE.md` a partir de `templates/CLAUDE.md.template`: índice com ponteiro
   pras 7 rules + invariantes sempre-carregados (merge seguro, hierarquia,
   catalisação) no corpo. **Equalizado**: toda rule tem linha no índice.
+- **`REVIEW.md` raiz** a partir de `templates/REVIEW.md.template`: single
+  source of truth consumido pelo Claude AI review do `pr-auto-review.yml`.
+  Contém 9 seções: sumário projeto (§1) + princípios canônicos catalisados
+  (§2.X = lições L-XXX) + critérios merge (§3 críticos/ressalvas/aprovação
+  + hierarquia epistêmica P1-P5) + frentes entregues (§4) + validators
+  ativos (§5) + vocabulário canônico (§6) + endpoints+integrações (§7) +
+  output format obrigatório do review (§8) + fallback canônico Code Review
+  Diretor (§9). Começa com placeholders; mantenedor preenche §2.X conforme
+  catalisa lições e §3-§9 conforme projeto amadurece. Workflow YAML
+  referencia APENAS `REVIEW.md` + `CLAUDE.md` no prompt (reduz turns,
+  evita AJV crash).
 - `AGENTS.md` (diário vivo append-only) + `registro-construcao.md` (cronologia)
 - `docs/{casos-referencia,licoes,deploys,api,arquitetura}/`
 
@@ -128,7 +139,15 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
 - **`ci.yml`** — type check, lint, validators (PR + push main)
 - **`pr-auto-review.yml`** — 3 jobs: heurística (sempre, sem custo) +
   `check-key` (graceful se `CLAUDE_CODE_OAUTH_TOKEN` ausente) +
-  `claude-review` (Claude AI via OAuth, lê CLAUDE.md + rules, comenta)
+  `claude-review` (Claude AI via OAuth, lê **`REVIEW.md` raiz** como single
+  source of truth + rules, comenta). Estrutura resiliente: **retry duplo**
+  (tentativa 1 + sleep 30s + tentativa 2, ambos `continue-on-error: true`)
+  + **fallback canônico** se 2 tentativas falharem → posta comment
+  sinalizando Code Review Diretor manual (4 sub-agents READ-ONLY paralelos
+  via Task tool: architect / reviewer / quality-engineer /
+  deep-research-agent). Mitiga bugs upstream conhecidos
+  (`claude-code-action`: AJV crash, fd 4 mismatch, error_max_turns, App
+  token 401)
 - **`claude-mention.yml`** — `@claude` sob demanda em PR/issue/review.
   Autentica via `CLAUDE_CODE_OAUTH_TOKEN`. Sem o secret, skipa silencioso
 - **`pr-auto-merge.yml`** — auto-approve+merge SÓ Tier S inerte (`docs/`,
@@ -195,9 +214,26 @@ Default (sempre instalados em `scripts/validators/`):
 - **`validate-claude-md-sync.ts`** — equalização: falha se rule sem ponteiro
   no CLAUDE.md ou ponteiro morto. O `ci.yml` roda tudo em
   `scripts/validators/*.ts` automaticamente
+- **`validate-webhook-active.ts`** — gate L-001 (doc sem smoke E2E é
+  ficção). Se `CLAUDE.md` menciona "webhook GitHub" / "deploy automático",
+  `gh api repos/<owner>/<repo>/hooks` precisa retornar ≥1 webhook ativo
+  com push event. Skipa gracefully em CI default (`GITHUB_TOKEN` sem scope
+  `admin:repo_hook` → 403/404). Falha somente em ambiente com PAT
+  configurado (dev local autenticado ou runner com `PAT_HOOK`).
+- **`validate-hierarquia-epistemica.ts`** — gate hierarquia P1-P5. Detecta
+  frases proibidas de inversão (P5 refutando P1: "ZERO bugs detectados",
+  "Padrão arquitetural está 100% correto" sem cirurgia, "hipótese sem
+  evidência confirmou-se infundada", etc) em `PR_TITLE` + `PR_BODY` +
+  `COMMIT_MESSAGES`. Bypass legítimo: blockquote markdown (`>`) +
+  evidência cirúrgica adjacente OU comentário inline
+  `// hierarquia-epistemica: ignore` (janela 3 linhas). Roda em
+  commit-msg hook (lefthook) E em CI.
 
 Validators **específicos do projeto** o mantenedor cria conforme o domínio
-(ex: um validador de termos proibidos em strings de UI). Slot fica vazio.
+(ex: um validador de termos proibidos em strings de UI). Catalisar nova
+lição em `docs/licoes/L-XXX-*.md` que reincida 2+ vezes vira validator
+custom novo nesse slot (use `templates/licoes/L-XXX-titulo-curto.md.template`
++ adicione entrada em `REVIEW.md §2.X` + crie validator opcional).
 
 ### Fase 6 — Hooks (lefthook)
 
@@ -223,6 +259,40 @@ end-to-end). Se token não setado, confirma graceful skip.
 
 `docs/licoes/L-000-setup-inicial.md` com o que foi feito, decisões,
 ponteiros. Append em `AGENTS.md` + `registro-construcao.md`.
+
+Template canônico de lição em `templates/licoes/L-XXX-titulo-curto.md.template`
+(sintoma P1 + investigação descendente P1→P5 + causa raiz + fix + prevenção
+daqui pra frente + quando se aplica). Toda lição catalisada vira:
+1. Arquivo `docs/licoes/L-XXX-*.md` (caso fundador empírico)
+2. Entrada em `REVIEW.md §2.X` (princípio canônico + mitigação)
+3. Opcional: validator `scripts/validators/validate-<slug>.ts` se reincidiu
+4. Opcional: invariante novo em `.claude/rules/01-invariantes.md`
+
+Lição catalogada incompleta = lição perdida. Catalogar imediatamente
+pós-merge do fix.
+
+## 4 pilares de qualidade (padrão Coordenador-Frentes)
+
+Padrão replicável extraído de projetos com múltiplas frentes coordenadas
+e Code Review automático. Aplica em projeto novo (greenfield) ou existente
+(brownfield). Mais detalhe em
+`~/.claude/rules/padrao-coordenador-frentes.md` global do mantenedor.
+
+1. **Hierarquia epistêmica P1-P5** — sintoma reportado pelo mantenedor (P1)
+   > logs prod (P2) > estado DB (P3) > código (P4) > auditoria abstrata
+   (P5). **P5 NUNCA refuta P1.** Validator `validate-hierarquia-epistemica.ts`
+   é o gate hard.
+2. **Code Review Multi-Camada com fallback** — gate primário automático
+   (`anthropics/claude-code-action`) + retry duplo (sleep 30s) + fallback
+   Code Review Diretor manual (4 sub-agents READ-ONLY paralelos). Veredicto
+   manual tem MESMO peso de gate de merge que automático.
+3. **Equalização Angular cross-camada** — feature cross-camada toca TODAS
+   as camadas afetadas em PR ÚNICO. Validators custom + `02-equalizacao-pipeline.md`
+   garantem sequência correta por tipo de mudança.
+4. **Lições + Caso Fundador (L-XXX)** — toda decisão arquitetural relevante
+   vira lição numerada + caso fundador documentado. Princípio canônico em
+   `REVIEW.md §2.X`. Lições não morrem entre incidentes — viram base
+   orquestração permanente.
 
 ## Matriz de deploy (Fase 0 escolhe, Fase 4 instala)
 
