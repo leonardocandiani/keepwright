@@ -1,0 +1,132 @@
+# L-{{NUMERO}} — IA review/mention é ADVISORY, nunca hard-gate de merge
+
+**Data:** {{DATA_YYYY_MM_DD}}
+**PR:** #{{NUMERO_PR}}
+**Camadas afetadas:** EXT-1 CI/CD (workflows), EXT-2 Docs
+**Severidade:** alta (trava duplo-gate de merge de TODO PR que toca workflow)
+
+## Sintoma (P1)
+
+PR que modifica `.github/workflows/*.yml` (mesmo só um hunk pequeno em outro
+workflow) fica preso com `mergeStateStatus: UNSTABLE`. Investigação mostra
+o job `claude-review` (ou `claude-mention`) marcado como `failure` com:
+
+```
+App token exchange failed: 401 Unauthorized - Workflow validation failed.
+The workflow file must exist and have identical content to the version on
+the repository's default branch.
+```
+
+PR principal aprovado por humano, validators todos verdes, mas o gate de
+merge bloqueia porque o check da IA está vermelho. Solução temporária:
+mantenedor força `gh pr merge --admin` — quebra a invariante de duplo-gate.
+
+## Investigação
+
+Hierarquia descendente P1 → P5:
+
+- **P1 (sintoma):** PR que mexe em workflow YAML sempre fica UNSTABLE,
+  mesmo com hunk trivial (linha de comentário, espaço em branco).
+- **P2 (logs):** `App token exchange failed: Workflow validation failed`
+  vindo do step `claude-code-action`, NÃO `Invalid bearer token` (que é
+  L-007). Tipo de 401 diferente, root cause diferente.
+- **P3 (estado GitHub):** branch protection do GitHub é anti-supply-chain
+  por design — actions com OAuth/App token validam o workflow file rodando
+  contra a versão na default branch. Se diverge, token exchange falha.
+- **P4 (código):** comportamento documentado do GitHub Actions (commit
+  protection on workflow files). NÃO é bug.
+- **Refutação cirúrgica:** rodar o mesmo workflow em PR que NÃO toca YAML
+  passa. Rodar em PR que toca = sempre falha. Determinístico.
+
+## Causa raiz
+
+GitHub Actions tem proteção anti-supply-chain hardcoded: actions que
+exchange OAuth/App token (caso de `anthropics/claude-code-action@v1`)
+validam o **conteúdo do workflow file** contra a versão na default branch
+antes de emitir o token. Se o PR modificou o workflow, a versão da branch
+do PR não bate com main → exchange falha 401 deterministicamente.
+
+Sem `continue-on-error: true` no step, esse 401 esperado vira:
+- step `failure`
+- job `failure`
+- check `failure`
+- `mergeStateStatus: UNSTABLE`
+- duplo-gate de merge bloqueado
+
+## Fix
+
+**Padrão de arquitetura: IA review/mention é ADVISORY, nunca hard-gate.**
+
+1. Step da claude-code-action SEMPRE com `continue-on-error: true`:
+
+```yaml
+- name: Claude Code Review (tentativa 1)
+  id: review-1
+  continue-on-error: true   # ← SEMPRE
+  uses: anthropics/claude-code-action@v1
+  with:
+    claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    prompt: |
+      ...
+```
+
+2. Publicação determinística no PR via step separado (`if: always()`)
+   que lê o output JSON e posta via `gh pr comment` — não depende da
+   action subir comentário sozinha (allowlist engole `permission_denials_count:3`).
+
+3. Upload artifact `claude-execution-output.json` em `if: always()`
+   pra debug póstuma do que a action tentou dizer.
+
+4. Gates reais de merge:
+   - `deno check` / `tsc` / `bun test` (determinístico)
+   - Validators custom em `scripts/validators/*.ts` (determinístico)
+   - Heurística do auto-review job 1 (banned terms, hierarquia, webhook)
+   - `CODEOWNERS` approval (humano)
+   - `mergeStateStatus: CLEAN` (gate duro)
+
+5. Workflow change em PR isolado (mitigação adicional — quando o PR só
+   muda YAML, o action falha mas não há nada de produtivo bloqueado).
+
+## Prevenção daqui pra frente
+
+- [x] Templates `pr-auto-review.yml.template` e `claude-mention.yml.template`
+  da skill já vêm com `continue-on-error: true` no step da claude-code-action.
+- [x] Doc em `REVIEW.md §9` (Fallback canônico) e na header do workflow
+  explica: IA é ADVISORY.
+- [x] Validator `validate-pr-flow.ts` (futuro) pode checar se workflow IA
+  tem `continue-on-error` setado e quebrar CI se faltar.
+
+## Quando essa lição se aplica
+
+- Qualquer workflow que use OAuth/App token via action third-party.
+- Cluster de actions de IA (Anthropic, OpenAI, ChatGPT) que dependem de
+  token exchange — todos sujeitos ao mesmo anti-supply-chain.
+- Pipelines onde "qualidade IA" foi imaginada como hard-gate sem
+  considerar custo de falsos negativos em PRs de workflow.
+
+## Pattern reusable
+
+**Toda inteligência probabilística é ADVISORY, nunca gate determinístico.**
+IA review pode ter falso positivo (rejeita PR válido), falso negativo
+(aprova PR ruim), ou falha de infra (token exchange, AJV crash,
+max-turns, rate limit). Gate de merge tem que ser determinístico:
+checks que falham por motivo claro, reproduzível, sem dependência
+de modelo. IA opina, humano decide, determinístico bloqueia.
+
+Cluster de falhas conhecidas da `claude-code-action@v1` cobertas por
+`continue-on-error`:
+- `App token exchange failed: Workflow validation failed` (esta lição)
+- `Invalid bearer token` (L-007, secret malformado via pipe)
+- `error_max_turns (N)` (issue anthropics/claude-code#823)
+- `SDK execution error` AJV crash (issues #852/#892/#911/#947/#1013)
+- `fd 4 directory mismatch` (issues #1234/#1266/#1295/#1205 — Bun 1.3.6)
+
+## Refs cross-camada
+
+- Workflow: `.github/workflows/pr-auto-review.yml` (step `Claude Code Review`)
+- Workflow: `.github/workflows/claude-mention.yml` (step `Claude Code`)
+- Doc constituição: `REVIEW.md §9` (Fallback canônico)
+- Skill template: `templates/workflows/pr-auto-review.yml.template`
+- Lições relacionadas:
+  - L-007 (OAuth secret malformado via pipe) — outro 401, root cause diferente
+  - L-MENTION-CONTEXT (mention confunde número PR/issue)

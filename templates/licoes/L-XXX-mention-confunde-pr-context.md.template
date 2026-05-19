@@ -1,0 +1,138 @@
+# L-{{NUMERO}} — Claude mention responde no PR errado sem injection do número de gatilho
+
+**Data:** {{DATA_YYYY_MM_DD}}
+**PR:** #{{NUMERO_PR}}
+**Camadas afetadas:** EXT-1 CI/CD (claude-mention.yml), EXT-2 Docs
+**Severidade:** média (resposta vai pro PR errado, confunde mantenedor + auditoria)
+
+## Sintoma (P1)
+
+Mantenedor escreve `@claude` num comentário do PR #12. Claude responde,
+mas o comentário aparece no PR #11. Em alguns casos responde na issue #9.
+Resposta tecnicamente correta sobre o conteúdo do comentário, mas no
+thread errado. Mantenedor confuso, abre issue duplicada.
+
+## Investigação
+
+- **P1 (sintoma):** menção no #12 → resposta no #11. Reproduzível em runs
+  consecutivos.
+- **P2 (logs):** action recebe o evento corretamente. `gh pr view` chamado
+  pela action retorna metadados de PR diferente do que disparou. Claude
+  parece estar "adivinhando" o alvo.
+- **P3 (estado GitHub):** todos os events `issue_comment` /
+  `pull_request_review_comment` / `pull_request_review` carregam o número
+  do PR/issue como `github.event.issue.number` ou
+  `github.event.pull_request.number` dependendo do tipo.
+- **P4 (workflow):** prompt default da skill (versão antiga) NÃO injetava
+  esse número no texto. Modelo recebia comentário sem ancoragem e
+  inferia alvo pelo conteúdo — frequentemente cita "esse PR" sem número,
+  e o modelo pega o último PR aberto do repo na cache (heurística ruim).
+- **Refutação cirúrgica:** injetar `Alvo: #${{ github.event.issue.number || github.event.pull_request.number }}`
+  literal no prompt fixa o alvo. Modelo passa a usar `gh pr comment $NUMERO`
+  com o número exato em 100% dos runs subsequentes.
+
+## Causa raiz
+
+`anthropics/claude-code-action@v1` não passa identificador de gatilho pro
+prompt do modelo por default. O modelo recebe:
+- Repo full name
+- Body do comentário/review
+- Tools disponíveis (Bash, Read, etc.)
+
+Mas NÃO recebe explicitamente:
+- "Esse comentário foi feito no PR #N"
+- "Você deve responder em #N, não em outro"
+
+Modelo então usa heurística: chama `gh pr list`, pega o mais recente,
+ou cita o primeiro PR mencionado no body. Ambas heurísticas falham
+quando há múltiplos PRs ativos.
+
+## Fix
+
+Injetar o número de gatilho LITERAL no prompt do workflow:
+
+```yaml
+prompt: |
+  Você foi acionado por uma menção @claude.
+
+  **Alvo desta resposta**: #${{ github.event.issue.number || github.event.pull_request.number }}
+  **Evento de gatilho**: ${{ github.event_name }}
+  **Repo**: ${{ github.repository }}
+
+  Esse PR/issue acima = esse número. NUNCA respondas em outro número,
+  mesmo que o comentário cite outro PR. Se o usuário pedir ação em
+  PR/issue diferente, recuse e oriente abrir nova menção lá.
+
+  ...
+
+  Use `gh pr comment N` ou `gh issue comment N` pra responder no thread
+  certo (número JÁ injetado acima).
+```
+
+O `||` no expression context do GH cobre todos os eventos:
+- `issue_comment` → `github.event.issue.number`
+- `pull_request_review_comment` → `github.event.pull_request.number`
+- `pull_request_review` → `github.event.pull_request.number`
+- `issues` (opened/assigned) → `github.event.issue.number`
+
+Em qualquer caso, um dos dois está populado, o outro é null/undefined.
+GitHub avalia o `||` no template-time, então o prompt chega no modelo
+com o número resolvido literal.
+
+Adicionalmente, output do `guard` job ANTES do claude job exporta o
+número resolvido pra reusar:
+
+```yaml
+jobs:
+  guard:
+    outputs:
+      pr_or_issue: ${{ steps.decide.outputs.pr_or_issue }}
+    steps:
+      - id: decide
+        run: |
+          ALVO="${{ github.event.issue.number || github.event.pull_request.number }}"
+          echo "pr_or_issue=$ALVO" >> $GITHUB_OUTPUT
+```
+
+E o claude job consome via `${{ needs.guard.outputs.pr_or_issue }}`.
+
+## Prevenção daqui pra frente
+
+- [x] Template `claude-mention.yml.template` da skill já injeta o número
+  no prompt e exporta via output do guard.
+- [x] Template `pr-auto-review.yml.template` também injeta no prompt do
+  review (mesmo bug pode acontecer com PR # em review automático).
+- [x] Doc no header do workflow explica a importância da injeção.
+
+## Quando essa lição se aplica
+
+- Qualquer workflow que use IA pra responder em thread específico (PR,
+  issue, discussion).
+- Eventos do GitHub que disparam ação em múltiplos contextos —
+  `issue_comment` também dispara em PR (PRs herdam issue numbering).
+- Quando há múltiplos PRs/issues ativos no repo (caso comum em projeto
+  de qualidade com PR flow).
+
+## Pattern reusable
+
+**Identificador de gatilho deve ser injetado LITERAL no prompt.** Modelos
+de IA não inferem contexto de roteamento por default — eles fazem
+heurística sobre o conteúdo. Quando o thread de resposta importa,
+ancorar o número no system prompt e proibir explicitamente outras
+respostas. Pattern aplica também pra:
+- Bots de Slack/Discord respondendo no channel certo
+- Webhooks de WhatsApp respondendo no chat certo
+- Replies de e-mail respondendo no thread certo
+
+Em todos os casos: ID do alvo no prompt + "NUNCA responda em outro alvo,
+mesmo que o conteúdo mencione outro".
+
+## Refs cross-camada
+
+- Workflow: `.github/workflows/claude-mention.yml` (step `Claude Code`,
+  prompt + output `pr_or_issue`)
+- Workflow: `.github/workflows/pr-auto-review.yml` (prompts do review)
+- Skill template: `templates/workflows/claude-mention.yml.template`
+- Lições relacionadas:
+  - L-IA-ADVISORY (IA review é advisory, não hard-gate)
+  - L-007 (OAuth secret malformado — outro problema da claude-code-action)
