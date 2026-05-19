@@ -51,19 +51,59 @@ Regra dura: rule nova sem ponteiro no `CLAUDE.md` = rule invisível. O
 ## Autenticação Claude (OAuth prioritário)
 
 Os workflows de IA (`pr-auto-review` job Claude, `claude-mention`) autenticam
-por **OAuth token**, prioridade sobre API key:
+por **OAuth token**, prioridade sobre API key.
 
-```
-# 1. gerar o token (no terminal, uma vez)
+### Setup completo (3 passos, todos obrigatórios)
+
+**1. Gerar o token** (uma vez, em sessão isolada):
+```bash
 claude setup-token            # gera sk-ant-oat01-...
-
-# 2. setar como secret do repo
-gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>
 ```
 
-Sem o secret, os jobs de IA skipam sem quebrar o PR (graceful degradation).
-A skill instrui isso no fim do setup. API key (`ANTHROPIC_API_KEY`) é
-fallback documentado, não o caminho recomendado.
+**2. Setar o secret via wrapper canônico** (NÃO via pipe — L-007):
+```bash
+bash scripts/setup-oauth-secret.sh <owner>/<repo>
+```
+
+O wrapper lê do Keychain macOS (ou env var), valida shape (prefixo +
+tamanho + sem whitespace residual), seta via stdin redirect de arquivo
+binário (zero transformação), e limpa o arquivo no trap.
+
+❌ **NUNCA** fazer `echo "$TOKEN" | gh secret set --body -` nem
+`gh secret set --body "$TOKEN"`. Cadeias de pipe podem injetar bytes
+invisíveis (newline, BOM, surrogate) que tornam o bearer header
+malformado. A API Anthropic responde HTTP 200 via curl direto, mas o
+SDK do `claude-code-action` rejeita com 401 "Invalid bearer token".
+Bug invisível que custou 9 runs até diagnosticar (catalisador L-007).
+
+**3. Instalar o GitHub App Claude no repo** (obrigatório):
+```
+https://github.com/apps/claude/installations/new
+```
+Selecionar conta + repo(s). Sem o app instalado, o action tenta fazer
+"App token exchange" e falha com 401 mesmo com secret bem-formado.
+O bot que comenta no PR (`claude[bot]`) só existe via app install.
+
+### Diagnóstico no workflow (opcional)
+
+Adicionar step antes do action pra logar o tamanho do secret sem
+expor valor:
+
+```yaml
+- name: Diag length oauth token
+  env:
+    TOK: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+  run: |
+    echo "len=${#TOK}"  # 108 = sk-ant-oat01- bem-formado
+                        # >108 = malformado (newline/whitespace)
+                        # <100 = secret vazio ou truncado
+```
+
+### Graceful degradation
+
+Sem o secret, os jobs de IA skipam sem quebrar o PR. API key
+(`ANTHROPIC_API_KEY`) é fallback documentado, não o caminho recomendado
+(custo por uso, fora do plano Max).
 
 ## Fluxo da skill
 
@@ -156,7 +196,15 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
 - **`deploy/<variante>.yml`** — deploy automático sincronizado com o GitHub,
   escolhido pela stack detectada na Fase 0 (matriz abaixo)
 
-Ao final, instruir o setup do OAuth token (seção "Autenticação Claude").
+Ao final, executar o ritual completo de auth (seção "Autenticação Claude"):
+
+1. `claude setup-token` em sessão isolada
+2. `bash scripts/setup-oauth-secret.sh <owner>/<repo>` (wrapper canônico que
+   evita L-007 — secret malformado por pipe; sem isso, 401 Invalid bearer
+   token inexplicável que pode custar horas debugando)
+3. Instalar GitHub App `claude` no repo via
+   `https://github.com/apps/claude/installations/new` (sem app, "App token
+   exchange failed")
 
 ### Fase 4.5 — Rodar as GitHub Actions localmente (self-hosted, zera minutos)
 
@@ -251,9 +299,40 @@ Geradores `gen-project-structure.ts` / `gen-todos-report.ts` portáveis.
 ### Fase 8 — Smoke test do setup
 
 Branch `chore/setup-test`, mudança trivial em `docs/` (Tier S de propósito),
-abre PR, confirma: CI verde, heurística comenta, Claude review comenta (se
-token setado), `pr-auto-merge` aprova+mergeia sozinho (valida o Tier S
-end-to-end). Se token não setado, confirma graceful skip.
+abre PR, confirma:
+- CI verde em self-hosted (validators + type check)
+- Heurística comenta arquivos tocados
+- **Claude review comenta veredicto APROVADO/RESSALVAS/REPROVADO**
+  (se 401 aparecer aqui, ver checklist abaixo)
+- `pr-auto-merge` aprova+mergeia sozinho Tier S end-to-end
+
+Sem token: confirma graceful skip silencioso (workflow não falha).
+
+#### Checklist se claude-review der 401 no smoke
+
+Em ordem de probabilidade (lições compiladas até hoje):
+
+1. **GitHub App Claude instalado no repo?**
+   `https://github.com/apps/claude/installations/new` →
+   selecionar repo. Sem app, "App token exchange failed".
+2. **Secret bem-formado?** Adicionar step diagnóstico no workflow:
+   ```yaml
+   - run: echo "len=${#CLAUDE_CODE_OAUTH_TOKEN}"  # esperado: 108
+     env:
+       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+   ```
+   `len > 108` = secret tem whitespace residual (L-007 — re-setar via
+   `bash scripts/setup-oauth-secret.sh`).
+3. **Workflow do PR == default branch?** Se PR modifica
+   `.github/workflows/*.yml`, exchange falha deterministicamente
+   ("Workflow validation failed"). Workflow change em PR isolado.
+4. **Token gerado em conta com plano Claude Code Pro/Max ativo?**
+   Free tier não pode gerar oauth válido.
+5. **Vazamento de envs Anthropic do host self-hosted?**
+   `ANTHROPIC_AUTH_TOKEN` no env do runner override silenciosamente
+   o input do action (issue anthropics/claude-code#34826). Template
+   da skill já zera essas envs no step do action — confirme que o
+   workflow que você gerou também tem.
 
 ### Fase 9 — Catalisação inicial
 
@@ -270,6 +349,21 @@ daqui pra frente + quando se aplica). Toda lição catalisada vira:
 
 Lição catalogada incompleta = lição perdida. Catalogar imediatamente
 pós-merge do fix.
+
+#### Lições pré-catalisadas pela skill (templates inclusos)
+
+A skill já traz como template lições aprendidas em projetos anteriores:
+
+- **L-007 OAuth secret malformado por pipe** (template
+  `templates/licoes/L-XXX-oauth-secret-malformado-via-pipe.md.template`).
+  Cadeias `printf $T | tr | gh secret set --body -` injetam bytes
+  invisíveis. `curl` direto na API tolera (HTTP 200) mas SDK do
+  `claude-code-action` valida estritamente o bearer header (401).
+  Wrapper `scripts/setup-oauth-secret.sh` é a mitigação canônica.
+
+Cada projeto que usa a skill copia esses templates e renumera conforme
+a ordem real de catalisação dele. As lições upstream servem como
+referência e ponto de partida pra evitar bater nas mesmas pedras.
 
 ## 4 pilares de qualidade (padrão Coordenador-Frentes)
 

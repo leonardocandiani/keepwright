@@ -127,14 +127,20 @@ jobs:
     needs: check-key
     if: ${{ needs.check-key.outputs.has_key == 'true' && !github.event.pull_request.draft }}
     timeout-minutes: 20
-    # 18/05: step com continue-on-error até token OAuth dedicado ser gerado
-    # via `claude setup-token` em sessão isolada. Tokens compartilhados entre
-    # Aureleo runtime (plist MacAir) e claude-code-action são revogados
-    # mutuamente — cada setup-token invalida o anterior. Task #117.
-    # Retry duplo (id review-1 + review-2) com sleep 30s entre — mitiga bugs
-    # upstream do claude-code-action (AJV crash, fd 4 directory mismatch,
-    # error_max_turns). Fallback comment sinaliza Code Review Diretor manual
-    # se ambas tentativas falharem.
+    # Pré-requisitos (verificar ANTES de o workflow rodar):
+    #
+    # 1. Secret CLAUDE_CODE_OAUTH_TOKEN bem-formado.
+    #    Setar via `bash scripts/setup-oauth-secret.sh <owner>/<repo>`
+    #    (NUNCA via `echo $T | gh secret set --body -` — L-007).
+    #
+    # 2. GitHub App "Claude" instalado no repo.
+    #    https://github.com/apps/claude/installations/new
+    #    Sem o app, mensagem upstream: "App token exchange failed".
+    #
+    # Retry duplo (review-1 + sleep 30s + review-2, ambos
+    # `continue-on-error: true`) mitiga bugs intermitentes do
+    # claude-code-action (AJV crash, fd 4 mismatch, error_max_turns).
+    # Fallback comment sinaliza Code Review Diretor manual se ambas falham.
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 1 }
@@ -166,6 +172,11 @@ jobs:
           claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Anti-vazamento de env Anthropic do runner persistente.
+          # Catalisador L-007 + issue anthropics/claude-code#34826.
+          ANTHROPIC_AUTH_TOKEN: ""
+          ANTHROPIC_API_KEY: ""
+          ANTHROPIC_BASE_URL: ""
 
       - name: Sleep antes retry
         if: steps.review-1.outcome == 'failure'
@@ -187,6 +198,9 @@ jobs:
           claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_AUTH_TOKEN: ""
+          ANTHROPIC_API_KEY: ""
+          ANTHROPIC_BASE_URL: ""
 
       - name: Fallback — sinalizar Code Review Diretor manual
         if: steps.review-1.outcome == 'failure' && steps.review-2.outcome == 'failure'
