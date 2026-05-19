@@ -134,3 +134,90 @@ Task(subagent_type="deep-research-agent", prompt="<best practices+edge cases>")
 ```
 
 Todos PARALELOS no mesmo response. Veredicto consolidado pelo coordenador tem MESMO peso do veredicto automático.
+
+Causas conhecidas de falha do automático:
+
+- **`App token exchange failed: Workflow validation failed`** — PR misturando workflow change + código produtivo viola o anti-supply-chain do GitHub. Solução: workflow change em PR isolado, mergear primeiro.
+- **`Failed to authenticate. API Error: 401 Invalid bearer token`** — secret malformado por pipe (L-007) OU GitHub App Claude não instalado no repo.
+- **AJV crash / fd 4 directory mismatch / error_max_turns** — bugs intermitentes do upstream `anthropics/claude-code-action`. Retry duplo no workflow mitiga.
+
+---
+
+## 10. Workflow branch → PR → merge
+
+Fluxo canônico por mudança:
+
+1. **Branch:** `feat/<slug>`, `fix/<slug>`, `refactor/<slug>`, `docs/<slug>`, `chore/<slug>`, `test/<slug>`.
+2. **Commits intermediários:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`), autor humano sempre, NUNCA mencionar IA/Claude.
+3. **Pré-push local:** lefthook roda validators (no-secrets, claude-md-sync, hierarquia-epistemica) + type check da stack.
+4. **PR aberto:** template `.github/PULL_REQUEST_TEMPLATE.md` preenchido (camadas tocadas, smoke E2E, catalisação).
+5. **Heurística automática:** `pr-auto-review.yml` job 1 comenta arquivos tocados + valida banned terms + valida hierarquia + valida webhook.
+6. **Claude AI review:** comenta veredicto APROVADO / APROVADO COM RESSALVAS / REPROVADO no PR (formato §8).
+7. **Aprovação humana:** mantenedor (CODEOWNERS) lê veredicto + ressalvas + decide.
+8. **Merge:** APENAS via wrapper `scripts/gh-pr-merge-safe.sh <PR>` (verifica `mergeStateStatus: CLEAN` antes — gate duplo).
+9. **Pós-merge:** catalisação (`docs/licoes/L-XXX-*.md` se aplicável + entrada cronológica em `registro-construcao.md`).
+
+---
+
+## 11. Padrão commits + PR description
+
+### Commits
+- **Conventional Commits** obrigatório: `<type>(<scope>): <description>`
+- Tipos válidos: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `perf`, `init`, `wip`
+- Body opcional com bullets descritivos
+- **Footer obrigatório:** `Autor: {{MANTENEDOR}}` (NUNCA Claude/IA)
+
+### PR description
+Template `.github/PULL_REQUEST_TEMPLATE.md` cobre:
+- Summary (1-3 bullets do que mudou e por quê)
+- Camadas tocadas (referência §2 da equalização do pipeline)
+- Smoke E2E executado (qual + resultado)
+- Catalisação derivada (lições L-XXX criadas, rules atualizadas)
+- Test plan (checklist do que verificar antes de mergear)
+
+---
+
+## 12. Proibições absolutas
+
+❌ **Secret hardcoded no diff.** Patterns bloqueados pelo `validate-no-secrets.ts`: `sk-ant-(api|oat)\d{2}-`, `ghp_`, `pk_live_`, `sk_live_`, `sbp_`, `EAA…{60+}`. Validator é gate duro.
+
+❌ **Menção a IA/Claude em commits ou código.** Autor é sempre humano. `validate-no-secrets.ts` também detecta `Claude <noreply@anthropic`, `Co-Authored-By: Claude`, etc.
+
+❌ **`--no-verify` em commit/push.** Hook que falha = diagnosticar root cause, não bypass. Exceção apenas com aval explícito documentado no commit body.
+
+❌ **`gh pr merge` direto.** Sempre via wrapper `scripts/gh-pr-merge-safe.sh` que valida `mergeStateStatus: CLEAN`.
+
+❌ **PR misturando workflow change + código produtivo.** GitHub valida workflow contra default branch — exchange falha 401 deterministicamente. Workflow change vai em PR isolado.
+
+❌ **`gh secret set` com pipe** (`echo $T | gh secret set --body -`). Bytes invisíveis (newline/BOM) tornam bearer malformado (L-007). SEMPRE via stdin redirect de arquivo: `gh secret set ... < /tmp/file.bin`.
+
+❌ **Inversão hierárquica P5→P1** em PR body. Auditoria genérica (parser/regex) NUNCA refuta sintoma reportado. Validator `validate-hierarquia-epistemica.ts` é gate duro.
+
+---
+
+## 13. Pedidos de evidência empírica no PR
+
+Quando o PR toca pipeline crítico (gateway, sender, runtime, deploy, auth), o Claude review pode requisitar:
+
+- **cURL real contra endpoint do projeto** (não doc) capturado no PR description
+- **Query SELECT contra DB** mostrando estado pré/pós mudança
+- **Logs do servidor** em produção ou staging durante reprodução do sintoma
+- **Smoke E2E** documentado em `tests/e2e/` ou via runbook em `docs/`
+
+Doc descritiva tratada como implementação validada é o padrão de falha mais perigoso (L-001 "doc sem smoke é ficção"). Evidência cirúrgica > especificação aspiracional.
+
+---
+
+## 14. Referências cruzadas
+
+- `CLAUDE.md` raiz — constituição + ponteiros pras 7 rules
+- `.claude/rules/01-invariantes.md` — invariantes invioláveis numerados
+- `.claude/rules/02-equalizacao-pipeline.md` — camadas C1-CN do projeto
+- `.claude/rules/03-hierarquia-epistemica.md` — protocolo P1-P5 detalhado
+- `.claude/rules/04-pr-flow.md` — fluxo PR completo
+- `.claude/rules/05-catalisacao-licoes.md` — onde/como catalogar
+- `.claude/rules/06-frentes-paralelas.md` — `.planning/frentes/` workflow
+- `.claude/rules/07-merge-seguro.md` — duplo gate + `mergeStateStatus`
+- `docs/licoes/L-XXX-*.md` — lições catalisadas (pasta crescente)
+- `docs/casos-referencia/YYYY-MM-DD-*.md` — casos fundadores empíricos
+- `registro-construcao.md` — cronologia bruta append-only
