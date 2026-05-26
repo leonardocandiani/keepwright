@@ -1,5 +1,62 @@
 name: PR Auto-Review
 
+# ═══════════════════════════════════════════════════════════════════════════
+# PR Auto-Review (heurística + Claude AI opcional)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# 3 jobs encadeados que rodam em todo PR:
+#   1. auto-review     — heurística sem custo (sempre roda)
+#   2. check-key       — verifica se há OAuth token configurado
+#   3. claude-review   — Claude AI review via OAuth (só se token presente)
+#
+# Resiliente: claude-review tem retry duplo + fallback canônico (comenta
+# pedindo Code Review Diretor manual) — mitiga bugs upstream conhecidos
+# do `claude-code-action` (AJV crash, fd 4 mismatch, error_max_turns,
+# App token 401).
+#
+# ─── CHECKLIST PRA RODAR 100% ──────────────────────────────────────────────
+#
+# 1. PLACEHOLDERS — substitua tudo entre `{{...}}` antes de commitar:
+#    {{PROJETO}}                Nome do projeto (ex: "meu-app")
+#    {{ARQUIVO_CRITICO_1}}      Nome humano do 1º arquivo crítico
+#                               (ex: "Camada de pagamento")
+#    {{ARQUIVO_CRITICO_1_GLOB}} Regex grep do path
+#                               (ex: "src/payments/charge\.ts")
+#    {{ARQUIVO_CRITICO_2}}      Nome humano do 2º arquivo crítico
+#    {{ARQUIVO_CRITICO_2_GLOB}} Regex grep do path do 2º
+#    {{INVARIANTES_REFS}}       Refs §X.Y das invariantes envolvidas
+#                               (ex: "§1.2, §1.3")
+#
+#    Se NÃO tem arquivo crítico, remova os blocos "Detect/Warn arquivo
+#    crítico" — o restante (banned terms + validators + claude review)
+#    funciona sozinho.
+#
+# 2. SECRETS no repo (Settings → Secrets and variables → Actions):
+#    GITHUB_TOKEN                Auto (não precisa criar)
+#    CLAUDE_CODE_OAUTH_TOKEN     Opcional. Sem ele, claude-review skipa
+#                                gracioso. Gerar: `claude setup-token`
+#                                (gera sk-ant-oat01-...). Setar:
+#                                gh secret set CLAUDE_CODE_OAUTH_TOKEN
+#
+# 3. RUNNER — default `ubuntu-latest`. Pra self-hosted (zera minutos
+#    GitHub), troque `runs-on: ubuntu-latest` por
+#    `runs-on: [self-hosted, linux, x64]` nos 3 jobs. Ver Fase 4.5
+#    da SKILL.md (setup-self-hosted-runner.sh).
+#
+# 4. CONSTITUIÇÃO — claude-review espera `REVIEW.md` na raiz do repo
+#    (gerado em `templates/REVIEW.md.template`). Se você não usa REVIEW.md,
+#    edite o prompt do step "Claude Code Review" pra apontar pra outro
+#    documento (CLAUDE.md, README.md, etc).
+#
+# 5. STACK — steps "Setup Bun" e "Validate ..." assumem Bun + scripts
+#    em `scripts/validators/*.ts`. Adapte conforme stack:
+#      Node:   actions/setup-node@v4 + `npx tsx scripts/validators/...`
+#      Deno:   denoland/setup-deno@v2 + `deno run -A scripts/...`
+#      Python: actions/setup-python@v5 + `python scripts/...`
+#    Se não tem validators custom, remova os steps "Validate ...".
+#
+# ───────────────────────────────────────────────────────────────────────────
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -17,7 +74,8 @@ concurrency:
 jobs:
   auto-review:
     name: Auto-review heurístico
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
+    # Self-hosted? Troque por: runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
@@ -30,34 +88,33 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ─── Detecta mudanças em camadas críticas do SEU projeto ─────────
+      # Exemplos abaixo são genéricos. Substitua os globs e os nomes dos
+      # outputs pelos arquivos críticos reais do seu projeto. Se não tem
+      # arquivo crítico, REMOVA este bloco inteiro + os steps "Warn ..."
+      # logo abaixo.
       - name: Detect critical layer changes
         id: critical
         run: |
-          if grep -qE "(src/utils/types|src/utils/schemas)" changed_files.txt; then
-            echo "schema_changed=true" >> $GITHUB_OUTPUT
+          if grep -qE "{{ARQUIVO_CRITICO_1_GLOB}}" changed_files.txt; then
+            echo "critical_1_changed=true" >> $GITHUB_OUTPUT
           fi
-          if grep -qE "src/whatsapp/sender\.ts" changed_files.txt; then
-            echo "sender_changed=true" >> $GITHUB_OUTPUT
-          fi
-          if grep -qE "src/runtime/(claude-interactive|invoker-stream)\.ts" changed_files.txt; then
-            echo "runtime_changed=true" >> $GITHUB_OUTPUT
+          if grep -qE "{{ARQUIVO_CRITICO_2_GLOB}}" changed_files.txt; then
+            echo "critical_2_changed=true" >> $GITHUB_OUTPUT
           fi
           if grep -qE "\.claude/rules/" changed_files.txt; then
             echo "rules_changed=true" >> $GITHUB_OUTPUT
           fi
 
-      # CUSTOMIZE: substitua sender_changed/runtime_changed por warnings dos
-      # SEUS arquivos críticos. O exemplo abaixo é genérico — adapte invariantes
-      # mencionados aos do seu projeto.
       - name: Warn arquivo crítico 1 alterado
-        if: steps.critical.outputs.sender_changed == 'true'
+        if: steps.critical.outputs.critical_1_changed == 'true'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{ARQUIVO_CRITICO_1}} alterado** — confirmar invariantes {{INVARIANTES_REFS}} em \`.claude/rules/01-invariantes.md\`. Smoke E2E obrigatório."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Warn arquivo crítico 2 alterado
-        if: steps.critical.outputs.runtime_changed == 'true'
+        if: steps.critical.outputs.critical_2_changed == 'true'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{ARQUIVO_CRITICO_2}} alterado** — confirmar invariantes {{INVARIANTES_REFS}}. Smoke E2E obrigatório."
         env:
@@ -82,11 +139,13 @@ jobs:
             exit 1
           fi
 
+      # ─── Validators (opcionais — remova se não usar) ─────────────────
       - name: Setup Bun (validators)
         uses: oven-sh/setup-bun@v2
         with: { bun-version: latest }
 
       - name: Validate hierarquia epistêmica
+        if: hashFiles('scripts/validators/validate-hierarquia-epistemica.ts') != ''
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
@@ -96,6 +155,7 @@ jobs:
           bun run scripts/validators/validate-hierarquia-epistemica.ts
 
       - name: Validate webhook ativo (L-001)
+        if: hashFiles('scripts/validators/validate-webhook-active.ts') != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run scripts/validators/validate-webhook-active.ts
@@ -103,13 +163,14 @@ jobs:
       - name: Summary
         run: |
           FILES=$(wc -l < changed_files.txt)
-          gh pr comment ${{ github.event.pull_request.number }} --body "🤖 **Heurística concluída** — $FILES arquivos. Validators (hierarquia + webhook) verdes. Aguardando Claude review (se token configurado) e aprovação humana."
+          gh pr comment ${{ github.event.pull_request.number }} --body "🤖 **Heurística concluída** — $FILES arquivos. Validators verdes. Aguardando Claude review (se token configurado) e aprovação humana."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   check-key:
     name: Check Claude token
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
+    # Self-hosted? Troque por: runs-on: [self-hosted, linux, x64]
     outputs:
       has_key: ${{ steps.check.outputs.has_key }}
     steps:
@@ -123,18 +184,15 @@ jobs:
 
   claude-review:
     name: Claude AI review (informacional)
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
+    # Self-hosted? Troque por: runs-on: [self-hosted, linux, x64]
     needs: check-key
     if: ${{ needs.check-key.outputs.has_key == 'true' && !github.event.pull_request.draft }}
     timeout-minutes: 20
-    # 18/05: step com continue-on-error até token OAuth dedicado ser gerado
-    # via `claude setup-token` em sessão isolada. Tokens compartilhados entre
-    # Aureleo runtime (plist MacAir) e claude-code-action são revogados
-    # mutuamente — cada setup-token invalida o anterior. Task #117.
-    # Retry duplo (id review-1 + review-2) com sleep 30s entre — mitiga bugs
-    # upstream do claude-code-action (AJV crash, fd 4 directory mismatch,
-    # error_max_turns). Fallback comment sinaliza Code Review Diretor manual
-    # se ambas tentativas falharem.
+    # Retry duplo (review-1 + review-2) com sleep 30s entre tentativas —
+    # mitiga bugs upstream conhecidos do claude-code-action (AJV crash,
+    # fd 4 directory mismatch, error_max_turns, App token 401). Fallback
+    # comment sinaliza Code Review Diretor manual se ambas falharem.
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 1 }
