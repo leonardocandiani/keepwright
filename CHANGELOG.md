@@ -7,6 +7,24 @@ versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- **Modelo explícito + 1M no Claude review e mention.** `pr-auto-review.yml` e
+  `claude-mention.yml` agora rodam com `--model {{REVIEW_MODEL}}` (default
+  recomendado `claude-opus-4-8[1m]`) em vez do default da conta. Placeholder
+  `{{REVIEW_MODEL}}` + tabela de decisão por plano (Max/Team/Enterprise → Opus
+  4.8 1M; Pro → Opus 4.8; cost-sensitive → Sonnet 4.6) na SKILL.md.
+
+### Corrigido
+- **Opus 4.8 caía em fallback silencioso.** A `claude-code-action@v1`
+  auto-instala uma CLI defasada (~2.1.150, anterior ao Opus 4.8); `--model
+  claude-opus-4-8` rodava no default da conta sem erro. Os dois workflows
+  ganharam um step `Instalar Claude Code` que **pina** uma versão >= 2.1.154,
+  **verifica** (gate fail-fast), e aponta `path_to_claude_code_executable` pra
+  ela (action pula a própria instalação). `rm -rf` da instalação nativa antes
+  do install resolve o launcher resolvendo versão antiga em runner
+  reusado/self-hosted; `allowed_bots: "claude"` libera menção @claude por bot.
+  Validado ao vivo: review e mention reportando Opus 4.8 1M sobre CLI 2.1.160.
+
 ### Planejado
 - Suporte a monorepo Turbo/Nx com camadas por workspace
 - Template de deploy Cloudflare Pages/Workers

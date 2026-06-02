@@ -8,6 +8,12 @@ name: Claude Mention
 #   Obter: `claude setup-token` no terminal -> gera sk-ant-oat01-...
 #   Setar: gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>
 # Sem o secret, o job sai cedo sem erro (graceful degradation).
+#
+# MODELO: {{REVIEW_MODEL}} (default recomendado claude-opus-4-8[1m]). O step
+#   "Instalar Claude Code" garante CLI >= 2.1.154 (necessário pro Opus 4.8) —
+#   sem ele a action instala versão defasada e o --model cai em fallback.
+#   allowed_bots "claude" permite que menções @claude postadas por um bot
+#   (ex: automação) acionem o fluxo; remova se só humanos mencionam.
 
 on:
   issue_comment:
@@ -66,10 +72,32 @@ jobs:
         with:
           fetch-depth: 1
 
+      # ─── Garante Claude Code >= 2.1.154 (Opus 4.8) ───────────────────────
+      # A action @v1 auto-instala uma versão defasada (~2.1.150) e o
+      # `--model claude-opus-4-8` cai em fallback silencioso. Pinamos uma versão
+      # exata e apontamos `path_to_claude_code_executable` pra ela. O `rm -rf`
+      # limpa instalação nativa pré-existente (runner reusado/self-hosted
+      # resolvia versão antiga do store); em runner limpo é no-op.
+      - name: Instalar Claude Code (Opus 4.8 exige >= 2.1.154)
+        env:
+          CLAUDE_CODE_VERSION: "2.1.160"   # bump conforme releases; >= 2.1.154
+        run: |
+          rm -rf "$HOME/.local/bin/claude" "$HOME/.local/share/claude"
+          curl -fsSL https://claude.ai/install.sh | bash -s "$CLAUDE_CODE_VERSION"
+          CLAUDE_BIN="$HOME/.local/bin/claude"
+          INSTALLED="$("$CLAUDE_BIN" --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          echo "Claude Code instalado: $INSTALLED (pinned: $CLAUDE_CODE_VERSION)"
+          [ "$INSTALLED" = "$CLAUDE_CODE_VERSION" ] || { echo "::error::versao instalada ($INSTALLED) != pinned ($CLAUDE_CODE_VERSION)"; exit 1; }
+          echo "CLAUDE_BIN=$CLAUDE_BIN" >> "$GITHUB_ENV"
+
       - name: Claude Code
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Usa o Claude Code pinado no step acima (Opus 4.8 exige >= 2.1.154).
+          path_to_claude_code_executable: ${{ env.CLAUDE_BIN }}
+          # Permite menção @claude postada por bot (corrige "non-human actor").
+          allowed_bots: "claude"
           prompt: |
             Você foi acionado por uma menção @claude neste projeto.
 
@@ -86,6 +114,6 @@ jobs:
             responda direto e claro em português, sem floreio.
 
             Use `gh pr comment` ou `gh issue comment` pra responder no thread certo.
-          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob,Edit,Write"'
+          claude_args: '--model {{REVIEW_MODEL}} --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob,Edit,Write"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

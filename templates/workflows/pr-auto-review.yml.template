@@ -26,6 +26,15 @@ name: PR Auto-Review
 #    {{ARQUIVO_CRITICO_2_GLOB}} Regex grep do path do 2º
 #    {{INVARIANTES_REFS}}       Refs §X.Y das invariantes envolvidas
 #                               (ex: "§1.2, §1.3")
+#    {{REVIEW_MODEL}}           Modelo do Claude review. Default recomendado:
+#                               claude-opus-4-8[1m] (1M de contexto). O sufixo
+#                               [1m] exige plano Max/Team/Enterprise; no Pro use
+#                               claude-opus-4-8 (sem [1m]); cost-sensitive:
+#                               claude-sonnet-4-6. Opus 4.8 exige Claude Code CLI
+#                               >= 2.1.154 — o step "Instalar Claude Code" abaixo
+#                               garante isso (a action @v1 sozinha instala uma
+#                               versão defasada e o --model cai em fallback
+#                               silencioso pro default da conta).
 #
 #    Se NÃO tem arquivo crítico, remova os blocos "Detect/Warn arquivo
 #    crítico" — o restante (banned terms + validators + claude review)
@@ -197,12 +206,35 @@ jobs:
       - uses: actions/checkout@v5
         with: { fetch-depth: 1 }
 
+      # ─── Garante Claude Code >= 2.1.154 (Opus 4.8) ───────────────────────
+      # A action @v1 auto-instala uma versão defasada (~2.1.150, anterior ao
+      # Opus 4.8) — sem isto o `--model claude-opus-4-8` cai em fallback
+      # silencioso pro default da conta. Pinamos uma versão exata e apontamos
+      # `path_to_claude_code_executable` pra ela nas duas tentativas. O `rm -rf`
+      # limpa instalação nativa pré-existente: em runner reusado/self-hosted o
+      # launcher resolvia a versão antiga do store mesmo após instalar a nova;
+      # em runner limpo (ubuntu-latest) é no-op. O gate `[ INSTALLED = VERSION ]`
+      # aborta se a versão divergir (em vez de rodar no modelo errado).
+      - name: Instalar Claude Code (Opus 4.8 exige >= 2.1.154)
+        env:
+          CLAUDE_CODE_VERSION: "2.1.160"   # bump conforme releases; >= 2.1.154
+        run: |
+          rm -rf "$HOME/.local/bin/claude" "$HOME/.local/share/claude"
+          curl -fsSL https://claude.ai/install.sh | bash -s "$CLAUDE_CODE_VERSION"
+          CLAUDE_BIN="$HOME/.local/bin/claude"
+          INSTALLED="$("$CLAUDE_BIN" --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          echo "Claude Code instalado: $INSTALLED (pinned: $CLAUDE_CODE_VERSION)"
+          [ "$INSTALLED" = "$CLAUDE_CODE_VERSION" ] || { echo "::error::versao instalada ($INSTALLED) != pinned ($CLAUDE_CODE_VERSION)"; exit 1; }
+          echo "CLAUDE_BIN=$CLAUDE_BIN" >> "$GITHUB_ENV"
+
       - name: Claude Code Review (tentativa 1)
         id: review-1
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Usa o Claude Code pinado no step acima (Opus 4.8 exige >= 2.1.154).
+          path_to_claude_code_executable: ${{ env.CLAUDE_BIN }}
           prompt: |
             Você é o revisor automático de {{PROJETO}}. Faça review COMPLETA do PR.
 
@@ -221,7 +253,7 @@ jobs:
             ```
 
             Comente no PR via `gh pr comment`. Linguagem direta, português acentuado, sem floreio. Não duplique heurística do auto-review (que já rodou). Foca em: decisões arquiteturais questionáveis, camada vizinha não ratificada, risco de regressão, invariante violado, inversão hierárquica P5→P1.
-          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+          claude_args: '--model {{REVIEW_MODEL}} --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -236,13 +268,15 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Usa o Claude Code pinado no step acima (Opus 4.8 exige >= 2.1.154).
+          path_to_claude_code_executable: ${{ env.CLAUDE_BIN }}
           prompt: |
             Você é o revisor automático de {{PROJETO}}. Tentativa 2 (tentativa 1 falhou).
 
             **Constituição (single source of truth):** `REVIEW.md` raiz repo. LEIA ANTES de comentar. Output format §8.
 
             Comente no PR via `gh pr comment`.
-          claude_args: '--allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+          claude_args: '--model {{REVIEW_MODEL}} --allowed-tools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
