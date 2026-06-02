@@ -65,6 +65,62 @@ Sem o secret, os jobs de IA skipam sem quebrar o PR (graceful degradation).
 A skill instrui isso no fim do setup. API key (`ANTHROPIC_API_KEY`) é
 fallback documentado, não o caminho recomendado.
 
+## Modelo do review + versão da CLI (Opus 4.8 / 1M)
+
+Os workflows de IA (`pr-auto-review` job Claude, `claude-mention`) rodam num
+**modelo explícito** via `--model {{REVIEW_MODEL}}`. Sem `--model`, o review
+roda no default da conta — sem garantia de qual modelo nem de 1M de contexto.
+
+**Escolha do modelo (a skill preenche `{{REVIEW_MODEL}}` pelo plano do
+mantenedor, detectado/perguntado na Fase 0):**
+
+| Plano | `{{REVIEW_MODEL}}` | Notas |
+|---|---|---|
+| Max / Team / Enterprise | `claude-opus-4-8[1m]` | **default recomendado** — Opus 1M incluído no plano via OAuth; o `[1m]` ativa 1M de contexto |
+| Pro | `claude-opus-4-8` | Opus sem 1M (o `[1m]` exige Max/Team/Enterprise) |
+| Cost-sensitive | `claude-sonnet-4-6` | mais barato, menos profundo |
+
+**Gotcha crítico (a razão do step "Instalar Claude Code"):** a
+`anthropics/claude-code-action@v1` auto-instala uma versão **defasada** da CLI
+(~2.1.150, anterior ao Opus 4.8). Passar `--model claude-opus-4-8` numa CLI que
+não conhece o modelo cai em **fallback silencioso** pro default da conta — sem
+erro, sem aviso. **Opus 4.8 exige Claude Code CLI >= 2.1.154.**
+
+Por isso os dois workflows têm um step `Instalar Claude Code` ANTES da action:
+
+```yaml
+- name: Instalar Claude Code (Opus 4.8 exige >= 2.1.154)
+  env:
+    CLAUDE_CODE_VERSION: "2.1.160"   # bump conforme releases; >= 2.1.154
+  run: |
+    rm -rf "$HOME/.local/bin/claude" "$HOME/.local/share/claude"
+    curl -fsSL https://claude.ai/install.sh | bash -s "$CLAUDE_CODE_VERSION"
+    CLAUDE_BIN="$HOME/.local/bin/claude"
+    INSTALLED="$("$CLAUDE_BIN" --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+    [ "$INSTALLED" = "$CLAUDE_CODE_VERSION" ] || { echo "::error::versao errada"; exit 1; }
+    echo "CLAUDE_BIN=$CLAUDE_BIN" >> "$GITHUB_ENV"
+```
+
+depois `path_to_claude_code_executable: ${{ env.CLAUDE_BIN }}` na action (faz a
+action **pular** a própria instalação defasada e usar a versão pinada).
+
+3 detalhes que custam horas se ignorados:
+- **Pin + verify, não `latest`.** Versão exata é determinística; o gate
+  `[ INSTALLED = VERSION ]` aborta se divergir em vez de rodar no modelo errado.
+  Pinar também responde ao aviso de supply-chain (`curl|bash` não-pinado).
+- **`rm -rf` antes do install.** Em runner **reusado ou self-hosted**, o
+  launcher `~/.local/bin/claude` resolve a versão antiga já "ativa" no store —
+  `install.sh | bash -s <v>` adiciona a versão mas **não troca o ponteiro
+  ativo**. Limpar a instalação nativa garante que só a versão pinada fique no
+  store. Em runner limpo (`ubuntu-latest`) o `rm -rf` é no-op.
+- **`allowed_bots: "claude"`** no `claude-mention` permite menção @claude
+  postada por bot/automação (sem ele: erro "non-human actor"). Escopado ao bot
+  "claude", nunca `"*"`.
+
+**Não cite strings de versão no corpo do PR** (ex: "2.1.150") — a action lê o
+PR body como contexto e um `##[error]` literal vira annotation falsa no log
+(red herring que confunde o debug).
+
 ## Fluxo da skill
 
 ### Fase 0 — Mapeamento do projeto-alvo
@@ -113,7 +169,8 @@ Templates pré-preenchidos em `templates/`. A skill personaliza: nome do
 projeto no título, stack nas rules, camadas geradas da estrutura real
 (`src/`, `api/`, `lib/` viram camadas), invariantes ficam como placeholder
 pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
-`{{REPO}}`, `{{REPO_OWNER}}`, `{{MANTENEDOR}}`, `{{STACK}}`, etc.
+`{{REPO}}`, `{{REPO_OWNER}}`, `{{MANTENEDOR}}`, `{{STACK}}`, `{{REVIEW_MODEL}}`
+(modelo do Claude review — ver "Modelo do review + versão da CLI"), etc.
 
 ### Fase 3 — Constituição + documentação
 
@@ -140,7 +197,10 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
 - **`pr-auto-review.yml`** — 3 jobs: heurística (sempre, sem custo) +
   `check-key` (graceful se `CLAUDE_CODE_OAUTH_TOKEN` ausente) +
   `claude-review` (Claude AI via OAuth, lê **`REVIEW.md` raiz** como single
-  source of truth + rules, comenta). Estrutura resiliente: **retry duplo**
+  source of truth + rules, comenta). Roda em modelo explícito
+  `--model {{REVIEW_MODEL}}` sobre Claude Code pinado >= 2.1.154 (step
+  `Instalar Claude Code` + `path_to_claude_code_executable` — ver "Modelo do
+  review + versão da CLI"). Estrutura resiliente: **retry duplo**
   (tentativa 1 + sleep 30s + tentativa 2, ambos `continue-on-error: true`)
   + **fallback canônico** se 2 tentativas falharem → posta comment
   sinalizando Code Review Diretor manual (4 sub-agents READ-ONLY paralelos
@@ -149,7 +209,9 @@ pro mantenedor preencher. Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`,
   (`claude-code-action`: AJV crash, fd 4 mismatch, error_max_turns, App
   token 401)
 - **`claude-mention.yml`** — `@claude` sob demanda em PR/issue/review.
-  Autentica via `CLAUDE_CODE_OAUTH_TOKEN`. Sem o secret, skipa silencioso
+  Autentica via `CLAUDE_CODE_OAUTH_TOKEN`. Mesmo modelo/versão pinados do
+  review (`--model {{REVIEW_MODEL}}` + Claude Code >= 2.1.154 +
+  `allowed_bots: "claude"`). Sem o secret, skipa silencioso
 - **`pr-auto-merge.yml`** — auto-approve+merge SÓ Tier S inerte (`docs/`,
   `registro-construcao.md`, `.planning/frentes/`), fail-safe por exclusão,
   dispara via `workflow_run` pós-CI verde. Tier H = humano (07-merge-seguro)
