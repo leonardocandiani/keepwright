@@ -1,0 +1,162 @@
+#!/usr/bin/env bun
+/**
+ * validate-prova-empirica.ts — Prova Empírica Pré-Merge (PEP).
+ *
+ * Princípio: toda mudança FUNCIONAL (código que altera comportamento runtime)
+ * DEVE ter evidência empírica de FUNCIONAMENTO contra ambiente real capturada no
+ * PR ANTES do merge. Não basta "o código está correto" (P4/P5 — leitura/lógica);
+ * precisa de P1/P2/P3 (sintoma testado, log, estado real, ou output de comando
+ * contra dados reais).
+ *
+ * É a 3ª perna do tripé empírico:
+ *   - Análise antes de execução  → blinda o INPUT (ler antes de mexer).
+ *   - Hierarquia Epistêmica      → blinda o VEREDICTO (P1 > P5).
+ *   - Prova Empírica Pré-Merge   → blinda o RESULTADO (provar que roda).
+ *
+ * Rigor: HARD só pra mudança FUNCIONAL. Docs/refactor/style/workflow/config são
+ * isentos automaticamente (não há comportamento runtime a provar).
+ *
+ * Inputs (env):
+ *   - FILES_CHANGED: arquivos do diff (newline/vírgula separados). Sem ela o
+ *     validator faz SKIP. CI e lefthook setam via `git diff --name-only`.
+ *   - PR_BODY: corpo do PR. Presente no CI (gate HARD). Ausente no pre-push
+ *     (PR ainda não existe) → modo LEMBRETE (exit 0, só avisa).
+ *   - COMMIT_MESSAGES: mensagens dos commits (detecta bypass).
+ *   - FUNCIONAL_GLOBS (opcional): CSV de prefixos de path considerados funcionais.
+ *     Sobrescreve o DEFAULT_PREFIXES. A skill ajusta na Fase 5 conforme a stack.
+ *
+ * Bypass legítimo: comentário inline `# prova-empirica: ignore <razão>` no PR_BODY
+ * ou commit (ex: mudança funcional puramente mecânica). Requer aval do revisor.
+ *
+ * Ver `.claude/rules/08-prova-empirica-pre-merge.md` + `REVIEW.md §2.X`.
+ */
+
+const FILES_CHANGED = process.env.FILES_CHANGED || "";
+const PR_BODY = process.env.PR_BODY || "";
+const COMMIT_MESSAGES = process.env.COMMIT_MESSAGES || "";
+
+// Sem lista de arquivos, não dá pra saber se o PR toca funcional → SKIP controlado.
+if (!FILES_CHANGED.trim()) {
+  console.log("[validate-prova-empirica] SKIP — FILES_CHANGED vazio (sem contexto de diff).");
+  console.log('  CI/pre-push devem setar via: FILES_CHANGED="$(git diff --name-only origin/main...HEAD)".');
+  process.exit(0);
+}
+
+// Split por newline/vírgula (NÃO por espaço — quebraria paths com espaço).
+// Normaliza prefixo "./" pra não escapar a âncora ^ da FUNCIONAL_RE.
+const files = FILES_CHANGED.split(/[\n,]+/).map((f: string) => f.trim().replace(/^\.\//, "")).filter(Boolean);
+
+// Prefixos FUNCIONAIS — mudam comportamento runtime. CUSTOMIZE pro seu projeto:
+// a skill ajusta esta lista (ou seta FUNCIONAL_GLOBS) na Fase 5 conforme a
+// estrutura detectada na Fase 0. Default cobre diretórios de código comuns.
+const DEFAULT_PREFIXES = [
+  "src/", "lib/", "app/", "api/", "server/", "services/", "service/",
+  "components/", "pages/", "routes/", "handlers/", "controllers/",
+  "models/", "domain/", "core/", "internal/", "pkg/", "cmd/", "packages/",
+  "functions/", "supabase/functions/", "cli/", "bin/", "shared/", "workers/",
+  "jobs/", "schemas/", "prompts/", "agents/",
+];
+const prefixes = (process.env.FUNCIONAL_GLOBS || "").trim()
+  ? process.env.FUNCIONAL_GLOBS!.split(",").map((s: string) => s.trim()).filter(Boolean)
+  : DEFAULT_PREFIXES;
+const FUNCIONAL_RE = new RegExp(
+  "^(" + prefixes.map((p: string) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")",
+);
+const funcionais = files.filter((f: string) => FUNCIONAL_RE.test(f));
+const tocaFuncional = funcionais.length > 0;
+
+if (!tocaFuncional) {
+  console.log("[validate-prova-empirica] SKIP — PR não toca código funcional.");
+  console.log(`  Arquivos: ${files.slice(0, 8).join(", ")}${files.length > 8 ? ` (+${files.length - 8})` : ""}`);
+  console.log("  Docs/refactor/scripts/workflow/config são isentos (não há comportamento a provar).");
+  process.exit(0);
+}
+
+// Bypass inline (suaviza o gate quando documentado). Remove blocos de código
+// markdown antes de testar — senão um `# prova-empirica: ignore` colado num
+// snippet passaria sem aval consciente do revisor.
+const BYPASS_RE = /#\s*prova-empirica:\s*ignore\b/i;
+const prBodyNoFences = PR_BODY.replace(/```[\s\S]*?```/g, "").replace(/`[^`]*`/g, "");
+const hasBypass = BYPASS_RE.test(prBodyNoFences) || BYPASS_RE.test(COMMIT_MESSAGES);
+
+// Modo LEMBRETE: pre-push (PR_BODY ainda não existe). Não bloqueia, só avisa.
+if (!PR_BODY.trim()) {
+  console.log("[validate-prova-empirica] LEMBRETE — PR toca código funcional:");
+  funcionais.slice(0, 10).forEach((f: string) => console.log(`    ${f}`));
+  console.log("");
+  console.log("  Ao abrir o PR, inclua a seção 'VALIDAÇÃO EMPÍRICA (ambiente real)' com:");
+  console.log("    - o que testou (comando/fluxo) + ambiente (staging/preview/prod/local) + output real colado;");
+  console.log("    - perfis testados quando o comportamento varia por ator.");
+  console.log("  O gate vira HARD no CI (com PR body). exit=0 aqui (pre-push).");
+  process.exit(0);
+}
+
+// Modo HARD: CI (PR_BODY presente). Exige seção + evidência.
+if (hasBypass) {
+  console.log("[validate-prova-empirica] BYPASS — '# prova-empirica: ignore' presente. Gate suavizado (revisor valida a razão).");
+  process.exit(0);
+}
+
+const violations: string[] = [];
+
+// P1: seção "VALIDAÇÃO EMPÍRICA" presente.
+const temSecao = /VALIDA[ÇC][ÃA]O\s+EMP[ÍI]RICA/i.test(PR_BODY);
+if (!temSecao) {
+  console.error("[P1] FALHA: PR toca código funcional mas NÃO contém seção 'VALIDAÇÃO EMPÍRICA'.");
+  console.error(`       Arquivos funcionais: ${funcionais.slice(0, 6).join(", ")}${funcionais.length > 6 ? "…" : ""}`);
+  console.error("       Adicione '## VALIDAÇÃO EMPÍRICA (ambiente real)' com o que testou + ambiente + output real.");
+  violations.push("P1");
+} else {
+  console.log("[P1] OK: PR contém seção 'VALIDAÇÃO EMPÍRICA'.");
+
+  // P2: evidência concreta dentro da seção (não placeholder, não promessa).
+  // Extrai o texto da seção até a PRÓXIMA linha que começe com header `##+`
+  // (com ou sem espaço) — fecha o vazamento onde um `#### depois` deixava a
+  // evidência de outra seção ser absorvida pra dentro de uma VALIDAÇÃO vazia.
+  const m = PR_BODY.match(/VALIDA[ÇC][ÃA]O\s+EMP[ÍI]RICA[\s\S]*?(?=\n#{2,6}|$)/i);
+  const secao = m ? m[0] : "";
+
+  // Anúncio de intenção futura NÃO é prova ("vou testar", "ainda não rodei").
+  const intencaoFutura = /\b(vou|irei|pretendo|ainda\s+n[ãa]o\s+(?:rodei|testei|validei|verifiquei)|test(?:ar|arei|o)?\s+(?:depois|mais\s+tarde|amanh[ãa])|valid(?:o|ar|arei)\s+depois|a\s+(?:testar|validar)|pendente\s+de\s+teste|falta\s+testar)\b/i.test(secao);
+
+  // Dado FORTE: prova robusta que carimba o resultado.
+  const dadoForte =
+    /```/.test(secao) ||                                   // bloco de código/output colado
+    /\d+\/\d+/.test(secao) ||                              // contagem tipo 13/13
+    /→/.test(secao) ||                                     // resultado (X → Y)
+    /\b(log|output|query|curl|psql|select\b|count\b|render|stdout|response|status=)\b/i.test(secao);
+  // Dado FRACO: número + substantivo de recurso (cobre PT-BR e EN comuns).
+  const dadoFraco =
+    /\b\d+\s*(resultado|match|iten?s?|item|linha|registro|usu[áa]rio|pedido|request|response|rota|teste|caso|byte|m[óo]dulo|r[ée]plica|replica|row|record|user)/i.test(secao);
+  const temDado = dadoForte || dadoFraco;
+
+  if (!temDado) {
+    console.error("[P2] FALHA: seção 'VALIDAÇÃO EMPÍRICA' sem evidência concreta (parece placeholder).");
+    console.error("       Cole output real: bloco de código, '→ resultado', contagem N/N, log/query, ou 'N itens'.");
+    console.error("       Citar ambiente ('testei no staging') sem nenhum dado NÃO conta.");
+    violations.push("P2");
+  } else if (intencaoFutura && !dadoForte) {
+    console.error("[P2] FALHA: seção 'VALIDAÇÃO EMPÍRICA' parece anúncio de intenção futura, não prova.");
+    console.error("       'Vou testar depois' / 'ainda não rodei' não é evidência. Cole o output do teste já feito.");
+    violations.push("P2");
+  } else {
+    console.log("[P2] OK: seção tem evidência empírica concreta.");
+  }
+}
+
+if (violations.length > 0) {
+  console.error("");
+  console.error(`[validate-prova-empirica] FAIL — ${violations.length} violação(ões): ${violations.join(", ")}.`);
+  console.error("");
+  console.error("Prova Empírica Pré-Merge (PEP) — REVIEW.md §2.X:");
+  console.error("  - Mudança funcional DEVE provar comportamento contra ambiente real ANTES do merge.");
+  console.error("  - 'O código está correto' (leitura/lógica) NÃO é prova empírica de funcionamento.");
+  console.error("  - 3ª perna do tripé: Análise (input) + Hierarquia (veredicto) + Prova (resultado).");
+  console.error("");
+  console.error("Bypass legítimo (raro): '# prova-empirica: ignore <razão>' no PR body + aval do revisor.");
+  process.exit(1);
+}
+
+console.log("");
+console.log("[validate-prova-empirica] OK — prova empírica presente pra mudança funcional.");
+process.exit(0);

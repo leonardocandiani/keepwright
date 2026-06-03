@@ -163,6 +163,20 @@ jobs:
           export COMMIT_MESSAGES
           bun run scripts/validators/validate-hierarquia-epistemica.ts
 
+      - name: Validate prova empírica (PEP — gate hard)
+        if: hashFiles('scripts/validators/validate-prova-empirica.ts') != ''
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # changed_files.txt vem do step "Get changed files"; origin/BASE já foi
+          # buscado no step "Check banned terms". Gate HARD: PR funcional sem seção
+          # VALIDAÇÃO EMPÍRICA com evidência concreta → exit=1.
+          FILES_CHANGED=$(cat changed_files.txt)
+          export FILES_CHANGED
+          COMMIT_MESSAGES=$(git log --format='%B' origin/${{ github.event.pull_request.base.ref }}..HEAD)
+          export COMMIT_MESSAGES
+          bun run scripts/validators/validate-prova-empirica.ts
+
       - name: Validate webhook ativo (L-001)
         if: hashFiles('scripts/validators/validate-webhook-active.ts') != ''
         env:
@@ -240,7 +254,7 @@ jobs:
 
             **Constituição (single source of truth):** `REVIEW.md` raiz repo. Contém princípios canônicos §2.X (lições catalisadas), critérios de merge §3, output format §8, fallback canônico §9. LEIA ANTES de comentar.
 
-            **Rules secundárias:** `.claude/rules/0[1-7]-*.md` quando precisar de detalhe.
+            **Rules secundárias:** `.claude/rules/0[1-8]-*.md` quando precisar de detalhe.
 
             **Output OBRIGATÓRIO** (formato em REVIEW.md §8):
             ```

@@ -42,6 +42,7 @@ Catalisada após {{INCIDENTE_DATA}}. {{CAUSA_RAIZ_CURTA}}.
 - Violação de invariante em `.claude/rules/01-invariantes.md`
 - Mudança que toca 1 camada quando deveria tocar conjunto (equalização)
 - Inversão hierárquica P5→P1 em PR body sem evidência cirúrgica adjacente
+- PR funcional sem prova empírica (seção `VALIDAÇÃO EMPÍRICA` ausente ou só placeholder) — §3.5
 - `--no-verify` usado sem aval explícito do mantenedor
 
 ### 3.2. Ressalvas — comenta mas não bloqueia
@@ -58,6 +59,10 @@ Catalisada após {{INCIDENTE_DATA}}. {{CAUSA_RAIZ_CURTA}}.
 ### 3.4. Hierarquia epistêmica
 
 P1 (sintoma reportado pelo mantenedor) > P2 (logs em prod) > P3 (estado DB) > P4 (código) > P5 (auditoria abstrata). Veredicto "ZERO bugs" sem reprodução cirúrgica do sintoma via 5 fontes empíricas = FALHA de investigação, NÃO veredicto válido.
+
+### 3.5. Prova empírica pré-merge (PEP)
+
+Mudança **funcional** (altera comportamento em runtime) só mergeia com evidência empírica de FUNCIONAMENTO contra ambiente real, colada no PR sob `## VALIDAÇÃO EMPÍRICA`. "O código está correto" / "type-check verde" / "build passou" são P4/P5 (leitura/inferência), NÃO prova — compilar ≠ funcionar. Prova = P1/P2/P3 (output de comando real, log, estado do banco, cenário do bug reproduzido + fix). 3ª perna do tripé empírico: análise (input) → hierarquia §3.4 (veredicto) → prova (resultado). Gate `validate-prova-empirica.ts` (HARD no CI). Isento: docs/refactor/style/config/workflow. Detalhe em `.claude/rules/08-prova-empirica-pre-merge.md`.
 
 ---
 
@@ -77,6 +82,7 @@ P1 (sintoma reportado pelo mantenedor) > P2 (logs em prod) > P3 (estado DB) > P4
 | `validate-claude-md-sync.ts` | pre-commit + CI | toda rule em `.claude/rules/` tem ponteiro no CLAUDE.md |
 | `validate-webhook-active.ts` | CI | webhook documentado existe em `gh api .../hooks` (L-001) |
 | `validate-hierarquia-epistemica.ts` | commit-msg + CI | linguagem P5→P1 sem evidência cirúrgica |
+| `validate-prova-empirica.ts` | pre-push (lembrete) + CI (hard) | PR funcional sem seção `VALIDAÇÃO EMPÍRICA` com evidência |
 
 ---
 

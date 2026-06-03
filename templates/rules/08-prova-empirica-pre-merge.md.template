@@ -1,0 +1,77 @@
+# Prova Empírica Pré-Merge (PEP)
+
+Toda mudança **funcional** (código que altera comportamento em runtime) DEVE ter
+**evidência empírica de que funciona** contra ambiente real, capturada no PR
+**antes do merge**. "O código está correto" (leitura, lógica, type-check verde)
+NÃO é prova de funcionamento.
+
+## Por quê
+
+É a 3ª perna do tripé empírico do {{PROJETO}}:
+
+| Perna | Blinda | Momento | Onde |
+|-------|--------|---------|------|
+| Análise antes de execução | INPUT (ler o que existe antes de mexer) | antes de mexer | SKILL Fase 0 / `02-equalizacao-pipeline.md` |
+| Hierarquia Epistêmica (P1>P5) | VEREDICTO (sintoma reportado > inferência) | conclusão | `03-hierarquia-epistemica.md` |
+| **Prova Empírica Pré-Merge** | **RESULTADO (provar que roda)** | **antes do merge** | esta rule |
+
+Sem prova empírica, "funciona" é hipótese (P4/P5 — código/inferência). Bug em
+produção custa caro; provar antes custa minutos. A hierarquia (`03`) diz que
+inferência não refuta sintoma; o PEP fecha o ciclo exigindo que a afirmação
+"resolvi" venha de P1/P2/P3 (sintoma testado, log, estado real), não de P4/P5.
+
+## O que conta como prova (P1/P2/P3)
+
+- **Output real de comando** contra dados reais: a CLI/app rodando e o retorno colado.
+- **Log do serviço/plataforma** mostrando o comportamento (linha do log que prova).
+- **Query no banco** (read-only) mostrando o estado real antes/depois.
+- **Teste do cenário** que reproduz o bug original + prova o fix.
+- **Smoke E2E** da mudança rodando no ambiente real (staging/preview/prod/local de verdade).
+- **Screenshot/gravação** quando o efeito é visual e não há log equivalente.
+
+NÃO conta: "o código parece correto", "a lógica está certa", "deve funcionar",
+"o type-check passou", "o build compilou" (compilar ≠ funcionar).
+
+## O que está isento (não-funcional)
+
+Docs, refactor sem mudança de comportamento, style/formatação, scripts de tooling,
+`.github/workflows`, config sem lógica, migrations puramente declarativas. Não há
+comportamento em runtime a provar.
+
+## Seção obrigatória no PR
+
+PR funcional DEVE ter `## VALIDAÇÃO EMPÍRICA (ambiente real)` com:
+
+- **o que** testou (comando/fluxo);
+- **ambiente** (staging/preview/prod/local rodando de verdade);
+- **output real colado** — não inventado, não "vou testar depois";
+- **perfis/papéis** testados quando o comportamento varia por ator.
+
+## Gate
+
+- `scripts/validators/validate-prova-empirica.ts` — HARD (exit=1) no CI quando o
+  diff toca código funcional e o PR body não tem a seção com evidência concreta.
+- Lefthook `pre-push` — LEMBRETE (o PR ainda não existe, então só avisa).
+- Bypass legítimo (raro): `# prova-empirica: ignore <razão>` no PR body + aval do
+  revisor (ex: mudança mecânica sem comportamento observável).
+
+## Anti-padrões que esta rule bloqueia
+
+- ❌ "Implementei X, o código está correto." (sem rodar)
+- ❌ "Type-check verde, build passou." (compila ≠ funciona)
+- ❌ "Vou testar depois do merge." (depois do merge é tarde)
+- ❌ Seção VALIDAÇÃO EMPÍRICA com placeholder vazio ou promessa futura
+- ✅ "Rodei `<comando>` no `<ambiente>` → `<output colado>`. Cenário do bug não
+  reproduz mais (antes: `<X>`, agora: `<Y>`)."
+
+## Catalisação
+
+Quando o PEP pegar um "funciona na minha cabeça" que teria virado bug, catalisa
+em `docs/licoes/L-XXX-*.md` + entrada em `REVIEW.md §2.X`. A prova — não a leitura
+do código — é o que dá confiança pra mergear.
+
+## Refs
+
+- `REVIEW.md` §2.X (princípio canônico) + §3.1 (critério crítico de merge).
+- `CLAUDE.md` — seção "Prova empírica pré-merge (resumo)".
+- Tripé: `03-hierarquia-epistemica.md` (veredicto) + análise antes de execução (input).

@@ -12,6 +12,7 @@
 | Discordando do código? | `.claude/rules/03-hierarquia-epistemica.md` |
 | Abrindo PR | `.claude/rules/04-pr-flow.md` + `.github/PULL_REQUEST_TEMPLATE.md` |
 | Vai mergear um PR? | `.claude/rules/07-merge-seguro.md` |
+| Mudou código? Prove que roda | `.claude/rules/08-prova-empirica-pre-merge.md` |
 | Aprendeu algo? | `.claude/rules/05-catalisacao-licoes.md` |
 | Investigação grande | `.claude/rules/06-frentes-paralelas.md` |
 | Histórico cronológico | `registro-construcao.md` |
@@ -60,6 +61,15 @@ usam worktree.
 P1 sintoma reportado > P2 logs em produção > P3 estado do banco > P4 código
 > P5 inferência abstrata. Quando duas fontes contradizem, a mais alta vence.
 Detalhe em `.claude/rules/03-hierarquia-epistemica.md`.
+
+## Prova empírica pré-merge (resumo)
+
+Mudança que altera comportamento em runtime só mergeia com **prova de que
+funciona** contra ambiente real, colada no PR (`## VALIDAÇÃO EMPÍRICA`).
+"O código está correto" / "type-check verde" NÃO é prova — compilar ≠ funcionar.
+3ª perna do tripé empírico (análise → hierarquia → prova). Gate
+`validate-prova-empirica.ts`. Detalhe em
+`.claude/rules/08-prova-empirica-pre-merge.md`.
 
 ## Princípio nuclear
 
