@@ -1,6 +1,6 @@
 ---
 name: setup-projeto-qualidade
-description: Organizadora e criadora de projetos. Aplica uma arquitetura de qualidade alta em qualquer projeto git, novo ou existente — CLAUDE.md como constituição equalizada, rules estruturadas (invariantes, equalização de pipeline, hierarquia epistêmica P1-P5, PR flow, catalisação de lições, frentes paralelas, merge seguro), CI/CD com auto-review OAuth, deploy automático adaptado à stack, agentes worktree-isolados, validators portáveis, hooks. Adapta tudo à stack detectada.
+description: Organizadora e criadora de projetos. Aplica uma arquitetura de qualidade alta em qualquer projeto git, novo ou existente — CLAUDE.md como constituição equalizada, rules estruturadas (invariantes, equalização de pipeline, hierarquia epistêmica P1-P5, PR flow, catalisação de lições, frentes paralelas, merge seguro, prova empírica pré-merge), CI/CD com auto-review OAuth, deploy automático adaptado à stack, agentes worktree-isolados, validators portáveis, hooks. Adapta tudo à stack detectada.
 ---
 
 # Skill: Setup Projeto Qualidade
@@ -157,7 +157,8 @@ Reportar em tabela compacta. Pedir confirmação do que pode mexer.
 │   ├── 04-pr-flow.md                (PR, review, merge)
 │   ├── 05-catalisacao-licoes.md     (como/onde catalogar)
 │   ├── 06-frentes-paralelas.md      (planos paralelos)
-│   └── 07-merge-seguro.md           (duplo gate + mergeStateStatus CLEAN)
+│   ├── 07-merge-seguro.md           (duplo gate + mergeStateStatus CLEAN)
+│   └── 08-prova-empirica-pre-merge.md (mudança funcional prova que roda no PR)
 ├── agents/
 │   └── worker.md                    (isolation: worktree — paraleliza sem
 │                                      sujar o working tree; git garantido)
@@ -290,6 +291,14 @@ Default (sempre instalados em `scripts/validators/`):
   evidência cirúrgica adjacente OU comentário inline
   `// hierarquia-epistemica: ignore` (janela 3 linhas). Roda em
   commit-msg hook (lefthook) E em CI.
+- **`validate-prova-empirica.ts`** — gate Prova Empírica Pré-Merge (PEP). PR que
+  toca código funcional (`src/`, `app/`, `api/`, etc — `FUNCIONAL_GLOBS`
+  customiza) DEVE ter seção `## VALIDAÇÃO EMPÍRICA` no corpo com evidência
+  concreta (output de comando, log, query, contagem N/N), não placeholder nem
+  "vou testar depois". HARD no CI (com `PR_BODY`); LEMBRETE no pre-push (sem
+  `PR_BODY`). Isento: docs/refactor/style/config/workflow. Bypass:
+  `# prova-empirica: ignore <razão>` no PR body. Roda no `pr-auto-review.yml` +
+  lefthook pre-push. Ver `.claude/rules/08-prova-empirica-pre-merge.md`.
 
 Validators **específicos do projeto** o mantenedor cria conforme o domínio
 (ex: um validador de termos proibidos em strings de UI). Catalisar nova
@@ -333,7 +342,7 @@ daqui pra frente + quando se aplica). Toda lição catalisada vira:
 Lição catalogada incompleta = lição perdida. Catalogar imediatamente
 pós-merge do fix.
 
-## 4 pilares de qualidade (padrão Coordenador-Frentes)
+## 5 pilares de qualidade (padrão Coordenador-Frentes)
 
 Padrão replicável extraído de projetos com múltiplas frentes coordenadas
 e Code Review automático. Aplica em projeto novo (greenfield) ou existente
@@ -355,6 +364,13 @@ e Code Review automático. Aplica em projeto novo (greenfield) ou existente
    vira lição numerada + caso fundador documentado. Princípio canônico em
    `REVIEW.md §2.X`. Lições não morrem entre incidentes — viram base
    orquestração permanente.
+5. **Prova Empírica Pré-Merge (PEP)** — mudança funcional só mergeia com prova
+   de que **roda** contra ambiente real (output de comando, log, query, cenário
+   do bug reproduzido), colada no PR sob `## VALIDAÇÃO EMPÍRICA`. "Código
+   correto" / "type-check verde" são P4/P5, não prova — compilar ≠ funcionar.
+   Fecha o **tripé empírico** com o pilar 1: análise antes de execução (input)
+   → hierarquia P1-P5 (veredicto) → prova pré-merge (resultado). Validator
+   `validate-prova-empirica.ts` é o gate hard.
 
 ## Matriz de deploy (Fase 0 escolhe, Fase 4 instala)
 
@@ -390,6 +406,7 @@ Todos disparam só PÓS-merge na main (deploy nunca roda no PR) + path filter +
 - ❌ Pular Fase 0
 - ❌ Criar rule sem adicionar ponteiro no CLAUDE.md (validador pega)
 - ❌ Commit atribuindo a IA (settings força attribution vazia)
+- ❌ Mergear mudança funcional sem prova empírica de que roda (validador pega)
 
 ## Output esperado por fase
 

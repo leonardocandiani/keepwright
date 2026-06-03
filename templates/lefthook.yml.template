@@ -40,6 +40,16 @@ commit-msg:
 
 pre-push:
   commands:
+    prova-empirica-lembrete:
+      # Lembrete (NÃO bloqueia): avisa se a branch toca código funcional, pra você
+      # não esquecer a seção VALIDAÇÃO EMPÍRICA ao abrir o PR. O gate HARD roda no
+      # CI com o PR body. Ver .claude/rules/08-prova-empirica-pre-merge.md.
+      run: |
+        V=scripts/validators/validate-prova-empirica.ts
+        if [ -f "$V" ] && command -v bun >/dev/null 2>&1; then
+          git fetch origin main --quiet 2>/dev/null || true
+          FILES_CHANGED="$(git diff --name-only origin/main...HEAD 2>/dev/null)" bun run "$V" || true
+        fi
     no-direct-to-main:
       run: |
         # Bloqueia push direto pra main (sem PR).

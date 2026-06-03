@@ -37,11 +37,11 @@ Ou descrever o que quer ("quero arquitetura sólida com PR auto-review e rules v
 
 - `templates/CLAUDE.md.template` — constituição equalizada (índice das rules + invariantes sempre-carregados)
 - `templates/settings.json.template` — `includeCoAuthoredBy:false` + attribution vazia + allowlist
-- `templates/rules/` — 7 rules base (invariantes, equalização, hierarquia P1-P5, PR flow, catalisação, frentes, merge seguro)
+- `templates/rules/` — 8 rules base (invariantes, equalização, hierarquia P1-P5, PR flow, catalisação, frentes, merge seguro, prova empírica pré-merge)
 - `templates/agents/` — worker.md (`isolation: worktree`, paralelismo isolado, git garantido)
 - `templates/workflows/` — ci.yml, pr-auto-review.yml (heurística + Claude review OAuth), claude-mention.yml (@claude OAuth), pr-auto-merge.yml (Tier S, fail-safe)
 - `templates/workflows/deploy/` — vercel, supabase-functions, docker-ghcr, npm-publish, static-pages (skill escolhe pela stack)
-- `templates/validators/` — validate-no-secrets.ts + validate-claude-md-sync.ts (gate de equalização)
+- `templates/validators/` — validate-no-secrets.ts + validate-claude-md-sync.ts (gate de equalização) + validate-hierarquia-epistemica.ts (P1-P5) + validate-prova-empirica.ts (prova de funcionamento no PR) + validate-webhook-active.ts
 - `templates/scripts/` — gh-pr-merge-safe.sh (gate mergeStateStatus CLEAN) + setup-self-hosted-runner.sh (runner próprio, zera minutos GitHub)
 - `templates/hooks/` — gen-project-structure.ts, gen-todos-report.ts
 

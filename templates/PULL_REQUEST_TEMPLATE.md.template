@@ -26,6 +26,23 @@ Referência: `.claude/rules/02-equalizacao-pipeline.md`
 
 <que cenário rodei pra validar>
 
+## VALIDAÇÃO EMPÍRICA (ambiente real)
+
+> Obrigatório se o PR toca código funcional (`src/`, `app/`, `api/`, etc).
+> Cole **output real** — não "vou testar depois". Compilar ≠ funcionar.
+> Ver `.claude/rules/08-prova-empirica-pre-merge.md`. Mudança não-funcional
+> (docs/refactor/style/config) é isenta: deixe `# prova-empirica: ignore <razão>`.
+
+- **O que testei:** <comando/fluxo>
+- **Ambiente:** <staging / preview / prod / local rodando de verdade>
+- **Output:**
+
+```
+<cole aqui o output real: retorno do comando, linha de log, resultado da query>
+```
+
+- **Cenário do bug:** <reproduz antes / não reproduz depois, se aplicável>
+
 ## Catalisação
 
 - [ ] Lição catalogada em `docs/licoes/L-XXX-*.md`
@@ -43,6 +60,7 @@ Referência: `.claude/rules/02-equalizacao-pipeline.md`
 ## Checklist
 
 - [ ] Type check verde local
+- [ ] Prova empírica colada na seção `VALIDAÇÃO EMPÍRICA` (se toca código funcional)
 - [ ] Validators verdes (`scripts/validators/run-all.sh`)
 - [ ] Sem `console.log` de debug que vai pra produção
 - [ ] Sem segredo commitado (validate-no-secrets passa)

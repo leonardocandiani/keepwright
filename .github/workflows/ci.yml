@@ -47,6 +47,7 @@ jobs:
             "templates/rules/05-catalisacao-licoes.md.template"
             "templates/rules/06-frentes-paralelas.md.template"
             "templates/rules/07-merge-seguro.md.template"
+            "templates/rules/08-prova-empirica-pre-merge.md.template"
             "templates/agents/worker.md.template"
             "templates/workflows/ci.yml.template"
             "templates/workflows/pr-auto-review.yml.template"

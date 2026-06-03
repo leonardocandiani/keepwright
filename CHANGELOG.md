@@ -8,6 +8,17 @@ versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
 ## [Unreleased]
 
 ### Adicionado
+- **Prova Empírica Pré-Merge (PEP)** — 3ª perna do tripé empírico (análise →
+  hierarquia → prova). Nova rule `08-prova-empirica-pre-merge.md` + validator
+  `validate-prova-empirica.ts`: mudança funcional só mergeia com evidência de que
+  **roda** contra ambiente real (output de comando, log, query, cenário do bug
+  reproduzido), colada no PR sob `## VALIDAÇÃO EMPÍRICA`. HARD no CI (com PR
+  body), LEMBRETE no pre-push. Isento docs/refactor/style/config/workflow.
+  Bypass `# prova-empirica: ignore <razão>`. Equalizado em CLAUDE.md (ponteiro +
+  resumo), REVIEW.md (§3.1 critério crítico + §3.5 seção canônica + §5
+  validators), PULL_REQUEST_TEMPLATE (seção VALIDAÇÃO EMPÍRICA + checklist),
+  `pr-auto-review.yml` (gate hard) e lefthook pre-push (lembrete). Refinado em
+  produção no Cote.Zap. Vira 5º pilar de qualidade na SKILL.md.
 - **Modelo explícito + 1M no Claude review e mention.** `pr-auto-review.yml` e
   `claude-mention.yml` agora rodam com `--model {{REVIEW_MODEL}}` (default
   recomendado `claude-opus-4-8[1m]`) em vez do default da conta. Placeholder
