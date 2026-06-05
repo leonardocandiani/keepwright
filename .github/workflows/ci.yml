@@ -12,17 +12,36 @@ permissions:
 
 jobs:
   validate:
-    name: Validate skill structure
+    name: Validate plugin structure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check SKILL.md exists with frontmatter
+      - name: Check plugin manifest
         run: |
-          test -f SKILL.md || { echo "SKILL.md missing"; exit 1; }
-          head -1 SKILL.md | grep -q "^---$" || { echo "SKILL.md missing frontmatter"; exit 1; }
-          grep -q "^name: setup-projeto-qualidade$" SKILL.md || { echo "SKILL.md frontmatter name missing"; exit 1; }
-          grep -q "^description:" SKILL.md || { echo "SKILL.md frontmatter description missing"; exit 1; }
+          test -f .claude-plugin/plugin.json || { echo ".claude-plugin/plugin.json missing"; exit 1; }
+          test -f .claude-plugin/marketplace.json || { echo ".claude-plugin/marketplace.json missing"; exit 1; }
+          node -e "const p=JSON.parse(require('fs').readFileSync('.claude-plugin/plugin.json','utf8')); if(p.name!=='keepwright'){console.error('plugin.json name is not keepwright');process.exit(1)}"
+          node -e "JSON.parse(require('fs').readFileSync('.claude-plugin/marketplace.json','utf8'))" || { echo "marketplace.json is not valid JSON"; exit 1; }
+
+      - name: Check commands exist
+        run: |
+          for c in setup audit review; do
+            test -f "commands/$c.md" || { echo "commands/$c.md missing"; exit 1; }
+          done
+
+      - name: Check skill exists with frontmatter
+        run: |
+          test -f skills/keepwright/SKILL.md || { echo "skills/keepwright/SKILL.md missing"; exit 1; }
+          head -1 skills/keepwright/SKILL.md | grep -q "^---$" || { echo "SKILL.md missing frontmatter"; exit 1; }
+          grep -q "^name: keepwright$" skills/keepwright/SKILL.md || { echo "SKILL.md frontmatter name missing"; exit 1; }
+          grep -q "^description:" skills/keepwright/SKILL.md || { echo "SKILL.md frontmatter description missing"; exit 1; }
+
+      - name: Check orchestration workflows exist
+        run: |
+          for w in map-brownfield derive-patterns verify-setup; do
+            test -f "workflows/$w.js" || { echo "workflows/$w.js missing"; exit 1; }
+          done
 
       - name: Check README.md exists
         run: test -f README.md
@@ -40,6 +59,7 @@ jobs:
             "templates/settings.json.template"
             "templates/lefthook.yml.template"
             "templates/PULL_REQUEST_TEMPLATE.md.template"
+            "templates/REVIEW.md.template"
             "templates/rules/01-invariants.md.template"
             "templates/rules/02-pipeline-equalization.md.template"
             "templates/rules/03-epistemic-hierarchy.md.template"
@@ -60,9 +80,14 @@ jobs:
             "templates/workflows/deploy/static-pages.yml.template"
             "templates/validators/validate-no-secrets.ts.template"
             "templates/validators/validate-claude-md-sync.ts.template"
+            "templates/validators/validate-epistemic-hierarchy.ts.template"
+            "templates/validators/validate-empirical-proof.ts.template"
+            "templates/validators/validate-webhook-active.ts.template"
             "templates/hooks/gen-project-structure.ts.template"
             "templates/hooks/gen-todos-report.ts.template"
             "templates/scripts/gh-pr-merge-safe.sh.template"
+            "templates/scripts/setup-oauth-secret.sh.template"
+            "templates/scripts/setup-self-hosted-runner.sh.template"
           )
           MISSING=0
           for f in "${REQUIRED[@]}"; do
