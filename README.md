@@ -16,8 +16,17 @@ your design and writing-voice patterns, then turns them into rules and validator
 
 ## Install
 
+Run each `/plugin` command on its own — don't paste both at once.
+
+**1. Add the marketplace**
+
 ```
 /plugin marketplace add leonardocandiani/keepwright
+```
+
+**2. Install the plugin**
+
+```
 /plugin install keepwright
 ```
 
