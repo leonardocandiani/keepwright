@@ -30,6 +30,14 @@ Run each `/plugin` command on its own — don't paste both at once.
 /plugin install keepwright
 ```
 
+**3. Reload to activate**
+
+```
+/reload-plugins
+```
+
+Loads keepwright's commands, skills, and agents into the current session — no Claude Code restart needed.
+
 ## Commands
 
 | Command | What it does |
