@@ -1,0 +1,74 @@
+# Pipeline Equalization — {{PROJECT}}
+
+A pipeline change never touches just 1 layer — it touches the coherent set. Skipping a layer = silent bug.
+
+> Template — adapt the layers to the project's real architecture. Examples below for common stacks.
+
+## The N layers
+
+### For Next.js + DB
+
+```
+C1  TYPES / SCHEMAS     src/types/, src/schemas/
+C2  DB MIGRATIONS       drizzle/migrations/, supabase/migrations/
+C3  REPOSITORIES        src/repositories/ (DB access)
+C4  SERVICES            src/services/ (business logic)
+C5  SERVER ACTIONS      src/app/.../actions.ts
+C6  API ROUTES          src/app/api/.../route.ts
+C7  HOOKS               src/hooks/ (client)
+C8  COMPONENTS          src/components/
+C9  PAGES               src/app/.../page.tsx
+C10 GLOBAL STATE        src/stores/, contexts
+C11 EXT INTEGRATIONS    third-party APIs
+```
+
+### For LLM agent + tools
+
+```
+C1  PERSONA / PROMPT     prompts/, persona/
+C2  TOOLS SPEC           tools/spec.ts (JSON schemas)
+C3  TOOL HANDLERS        tools/handlers.ts
+C4  AGENT LOOP           agent.ts (orchestrator)
+C5  WEBHOOK / ENTRY      api/webhook/
+C6  DB STATE             conversation tables, context
+C7  INTEGRATIONS         LLM provider, voice, messaging
+```
+
+### For CLI / backend service
+
+```
+C1  TYPES / DOMAIN       src/types/
+C2  DB / STORAGE         src/storage/
+C3  SERVICES             src/services/
+C4  COMMANDS / HANDLERS  src/commands/
+C5  HTTP / IPC LAYER     src/http/, src/ipc/
+C6  CONFIG / ENV         config/
+C7  INTEGRATIONS         external APIs
+```
+
+## Required sequences by change type
+
+### Add a new entity
+1. Types/schemas (C1)
+2. Migration (C2)
+3. Repository/storage (C3)
+4. Service (C4)
+5. API/handler (C5/C6)
+6. UI (C7-C9)
+7. E2E smoke test
+
+### Change a critical flow
+1. Map all touched layers BEFORE coding
+2. Each layer has an isolated test
+3. Smoke test the full flow
+
+## Anti-pattern: partial merge
+
+❌ "I only touched the API, forgot to update the UI" → contract breaks in production
+❌ "I changed the type, forgot to migrate the DB" → hydration error
+
+**Before opening a PR:** mental checklist "did I touch C1-CN where needed? did I verify coherence?".
+
+## Where to catalog a large change
+
+Every change that reaches **3+ layers** becomes `docs/casos-referencia/YYYY-MM-DD-titulo.md` documenting touched layers and decisions.

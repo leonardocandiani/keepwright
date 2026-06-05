@@ -1,0 +1,72 @@
+# L-XXX — {{SHORT_TITLE}}
+
+**Date:** {{DATE_YYYY_MM_DD}}
+**PR:** #{{PR_NUMBER}}
+**Affected layers:** {{LAYERS_REF}} (see `.claude/rules/02-pipeline-equalization.md`)
+**Severity:** {{high|medium|low}}
+
+## Symptom (P1)
+
+What the maintainer (or user in production) saw. In their words,
+screenshot, transcript, pasted log. This block is the primary source and
+can NEVER be refuted by lower levels of the hierarchy
+(`.claude/rules/03-epistemic-hierarchy.md`).
+
+> {{TRANSCRIPT_OR_LOG_VERBATIM}}
+
+## Investigation
+
+Descending path P1 → P5. Each level confirms or refutes the hypothesis.
+
+- **P1 — Symptom:** {{description}}
+- **P2 — Production logs:** {{log_evidence}}
+- **P3 — DB state:** {{snapshot_db}}
+- **P4 — Code:** {{relevant_code_snippet}}
+- **P5 — Audit/inference:** {{static_analysis}} (weaker than P4)
+
+## Root cause
+
+Where the bug was born. Not "I forgot to call X", but WHY it was easy
+to forget (e.g. method name didn't suggest importance, missing
+validator, ambiguous prompt, external contract changed silently).
+
+{{ROOT_CAUSE_TECHNICAL}}
+
+## Fix
+
+What changed. Summarized diff or commit reference.
+
+- Commit: {{FIX_SHA}}
+- Touched files:
+  - `{{file_1}}`
+  - `{{file_2}}`
+
+## Prevention from now on
+
+What we added so this bug doesn't come back:
+
+- [ ] New validator in `scripts/validators/validate-{{slug}}.ts`?
+- [ ] New rule in `.claude/rules/`?
+- [ ] New invariant in `.claude/rules/01-invariants.md`?
+- [ ] E2E smoke test in `tests/`?
+- [ ] New entry in `REVIEW.md §2.X`?
+- [ ] Make the TypeScript type less permissive?
+
+## When this lesson applies
+
+List of future situations where this learning holds:
+
+- {{situation_1}}
+- {{situation_2}}
+
+## Reusable pattern
+
+{{LESSON_GENERALIZATION}} — generic formulation that holds for any
+similar context, not just this project.
+
+## Cross-layer refs
+
+- Founding case: `docs/casos-referencia/{{slug}}-{{date}}.md` (if applicable)
+- Canonical principle: `REVIEW.md §2.X`
+- Local rule: `.claude/rules/{{NN-slug}}.md` (if it generated a new rule)
+- Validator: `scripts/validators/validate-{{slug}}.ts` (if it generated a validator)

@@ -1,10 +1,10 @@
 name: Deploy (GitHub Pages)
 
-# Stack: site estático (build → HTML/CSS/JS). Publica no GitHub Pages.
-# Dispara pós-merge na main. Nenhum secret necessário (usa Pages nativo).
+# Stack: static site (build → HTML/CSS/JS). Publishes to GitHub Pages.
+# Triggers post-merge on main. No secret required (uses native Pages).
 #
-# Pré-requisito: Settings → Pages → Source = GitHub Actions (uma vez, manual).
-# Ajuste BUILD_DIR pro diretório de saída do seu build.
+# Prerequisite: Settings → Pages → Source = GitHub Actions (once, manual).
+# Set BUILD_DIR to your build's output directory.
 
 on:
   push:

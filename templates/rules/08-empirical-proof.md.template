@@ -1,0 +1,79 @@
+# Empirical Proof Before Merge (EPP)
+
+Every **functional** change (code that alters runtime behavior) MUST carry
+**empirical proof that it works** against a real environment, captured in the PR
+**before merge**. "The code is correct" (reading it, the logic, a green
+type-check) is NOT proof that it works.
+
+## Why
+
+It's the 3rd leg of the {{PROJECT}} empirical tripod:
+
+| Leg | Guards | When | Where |
+|-----|--------|------|-------|
+| Analysis before execution | INPUT (read what exists before touching it) | before touching | SKILL Phase 0 / `02-pipeline-equalization.md` |
+| Epistemic Hierarchy (P1>P5) | VERDICT (reported symptom > inference) | at conclusion | `03-epistemic-hierarchy.md` |
+| **Empirical Proof Before Merge** | **RESULT (prove it runs)** | **before merge** | this rule |
+
+Without empirical proof, "it works" is a hypothesis (P4/P5 — code/inference). A
+production bug is expensive; proving it beforehand takes minutes. The hierarchy
+(`03`) says inference doesn't refute a symptom; EPP closes the loop by requiring
+that the "fixed it" claim come from P1/P2/P3 (tested symptom, log, real state),
+not P4/P5.
+
+## What counts as proof (P1/P2/P3)
+
+- **Real command output** against real data: the CLI/app running and the return pasted in.
+- **Service/platform log** showing the behavior (the log line that proves it).
+- **Database query** (read-only) showing the real state before/after.
+- **Scenario test** that reproduces the original bug + proves the fix.
+- **E2E smoke** of the change running in a real environment (staging/preview/prod/a real local one).
+- **Screenshot/recording** when the effect is visual and there's no equivalent log.
+
+What does NOT count: "the code looks correct", "the logic is right", "should
+work", "the type-check passed", "the build compiled" (compiling != working).
+
+## What's exempt (non-functional)
+
+Docs, refactors with no behavior change, style/formatting, tooling scripts,
+`.github/workflows`, config without logic, purely declarative migrations. There's
+no runtime behavior to prove.
+
+## Required PR section
+
+A functional PR MUST have `## EMPIRICAL VALIDATION (real environment)` with:
+
+- **what** you tested (command/flow);
+- **environment** (staging/preview/prod/a local one actually running);
+- **real output pasted in** — not made up, not "I'll test it later";
+- **profiles/roles** tested when behavior varies by actor.
+
+## Gate
+
+- `scripts/validators/validate-empirical-proof.ts` — HARD (exit=1) in CI when the
+  diff touches functional code and the PR body lacks the section with concrete
+  evidence.
+- Lefthook `pre-push` — REMINDER (the PR doesn't exist yet, so it only warns).
+- Legitimate bypass (rare): `# empirical-proof: ignore <reason>` in the PR body +
+  reviewer sign-off (e.g. a mechanical change with no observable behavior).
+
+## Anti-patterns this rule blocks
+
+- ❌ "Implemented X, the code is correct." (without running it)
+- ❌ "Type-check green, build passed." (compiling != working)
+- ❌ "I'll test it after the merge." (after the merge is too late)
+- ❌ EMPIRICAL VALIDATION section with an empty placeholder or a future promise
+- ✅ "Ran `<command>` in `<environment>` → `<output pasted in>`. The bug scenario
+  no longer reproduces (before: `<X>`, now: `<Y>`)."
+
+## Catalysis
+
+When EPP catches a "works in my head" that would have become a bug, catalyze it
+in `docs/licoes/L-XXX-*.md` + an entry in `REVIEW.md §2.X`. The proof — not
+reading the code — is what gives confidence to merge.
+
+## Refs
+
+- `REVIEW.md` §2.X (canonical principle) + §3.1 (critical merge criterion).
+- `CLAUDE.md` — "Empirical proof before merge (summary)" section.
+- Tripod: `03-epistemic-hierarchy.md` (verdict) + analysis before execution (input).

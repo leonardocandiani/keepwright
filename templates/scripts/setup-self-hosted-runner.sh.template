@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
-# setup-self-hosted-runner.sh — sobe um runner self-hosted containerizado
-# pra zerar o consumo de minutos do GitHub Actions (runner self-hosted não
-# conta no limite de minutos, qualquer visibilidade de repo).
+# setup-self-hosted-runner.sh — brings up a containerized self-hosted runner
+# to zero out GitHub Actions minute usage (a self-hosted runner doesn't count
+# against the minute limit, for any repo visibility).
 #
-# SEGURANÇA: use SÓ em repo PRIVADO com colaboradores confiáveis. Em repo
-# público, PR de fork roda código arbitrário no seu host. Não fure isso.
+# SECURITY: use ONLY on a PRIVATE repo with trusted collaborators. On a public
+# repo, a fork PR runs arbitrary code on your host. Don't break this.
 #
-# Pré: docker no host-alvo; gh autenticado com admin no repo.
+# Pre: docker on the target host; gh authenticated with admin on the repo.
 #
-# uso: bash setup-self-hosted-runner.sh <owner/repo> <host-ssh> <label>
-#   ex: bash setup-self-hosted-runner.sh {{REPO}} root@1.2.3.4:22 node01
+# usage: bash setup-self-hosted-runner.sh <owner/repo> <host-ssh> <label>
+#   e.g.: bash setup-self-hosted-runner.sh {{REPO}} root@1.2.3.4:22 node01
 
 set -euo pipefail
 
 REPO="${1:?owner/repo}"
-HOST="${2:?user@host[:port] do node}"     # ex: root@1.2.3.4 ou root@1.2.3.4:5922
-LABEL="${3:?label do runner}"             # ex: node01
+HOST="${2:?user@host[:port] of the node}"   # e.g. root@1.2.3.4 or root@1.2.3.4:5922
+LABEL="${3:?runner label}"                  # e.g. node01
 PORT="22"; case "$HOST" in *:*) PORT="${HOST##*:}"; HOST="${HOST%:*}";; esac
 
 NAME="gha-runner-$(echo "$REPO" | tr '/' '-')"
 
-echo "→ minting registration token (expira ~1h, não persiste)..."
+echo "→ minting registration token (expires ~1h, not persisted)..."
 REG=$(gh api -X POST "repos/$REPO/actions/runners/registration-token" --jq '.token')
-[ -n "$REG" ] || { echo "falha no token"; exit 1; }
+[ -n "$REG" ] || { echo "token failed"; exit 1; }
 
-echo "→ subindo container '$NAME' em $HOST:$PORT (label: self-hosted,linux,x64,$LABEL)..."
+echo "→ bringing up container '$NAME' on $HOST:$PORT (label: self-hosted,linux,x64,$LABEL)..."
 ssh -o StrictHostKeyChecking=accept-new -p "$PORT" "$HOST" \
   "docker rm -f '$NAME' 2>/dev/null; \
    docker pull myoung34/github-runner:latest >/dev/null && \
@@ -39,16 +39,16 @@ ssh -o StrictHostKeyChecking=accept-new -p "$PORT" "$HOST" \
      myoung34/github-runner:latest && sleep 15 && \
    docker logs --tail 8 '$NAME'"
 
-echo "→ confirmando no GitHub..."
+echo "→ confirming on GitHub..."
 gh api "repos/$REPO/actions/runners" \
   --jq '.runners[] | .name+" status="+.status+" labels="+([.labels[].name]|join(","))'
 
 cat <<'NOTE'
 
-OK. Agora aponte os jobs PESADOS pra ele nos workflows:
+OK. Now point the HEAVY jobs at it in the workflows:
   runs-on: [self-hosted, linux, x64]
-Mantenha jobs leves/críticos/raros em ubuntu-latest (resiliência se o
-node cair: jobs self-hosted ficam EM FILA, não falham).
+Keep light/critical/rare jobs on ubuntu-latest (resilience if the node
+goes down: self-hosted jobs sit in the QUEUE, they don't fail).
 
-Re-registrar (se recriar o container): rode este script de novo.
+Re-register (if you recreate the container): run this script again.
 NOTE

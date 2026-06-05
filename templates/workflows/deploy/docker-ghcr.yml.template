@@ -1,10 +1,10 @@
 name: Deploy (Docker → GHCR)
 
-# Stack: serviço containerizado. Builda e publica imagem no GitHub
-# Container Registry (ghcr.io). Dispara pós-merge na main + por tag de release.
+# Stack: containerized service. Builds and publishes an image to the GitHub
+# Container Registry (ghcr.io). Triggers post-merge on main + on a release tag.
 #
-# Usa GITHUB_TOKEN (nativo, sem secret extra) pra push no GHCR.
-# Para deploy no host: ative o passo final (SSH) e configure os secrets:
+# Uses GITHUB_TOKEN (native, no extra secret) to push to GHCR.
+# To deploy to the host: enable the final SSH step and configure the secrets:
 #   DEPLOY_SSH_HOST, DEPLOY_SSH_USER, DEPLOY_SSH_KEY
 
 on:
@@ -52,8 +52,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ─── OPCIONAL: deploy no host via SSH (descomente + configure) ──────
-      # - name: Deploy no host
+      # ─── OPTIONAL: deploy to the host via SSH (uncomment + configure) ───
+      # - name: Deploy to host
       #   uses: appleboy/ssh-action@v1
       #   with:
       #     host: ${{ secrets.DEPLOY_SSH_HOST }}

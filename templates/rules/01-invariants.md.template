@@ -1,0 +1,36 @@
+# {{PROJECT}} Invariants
+
+Rules that can **never** be violated. If a change breaks any invariant, it is rejected, no exceptions.
+
+> Template — fill in with domain rules. Examples below.
+
+## About the product
+
+1. **{{BUSINESS_RULE_1}}** — example: "Every financial transaction goes through idempotency via X-Idempotency-Key"
+2. **{{BUSINESS_RULE_2}}** — example: "Order state only transitions via state machine, never a direct update"
+3. **{{BUSINESS_RULE_3}}**
+
+## About sensitive data
+
+4. **Secrets never in code.** Tokens, API keys, passwords only in `.env` (gitignored) or a secrets service.
+5. **PII in logs = forbidden.** Tax IDs, phone numbers, emails only obfuscated.
+6. **DB queries always parameterized.** String concatenation with user input = SQL injection.
+
+## About commits
+
+7. **Commits without explicit authorization = forbidden.** A vague reply ("ok", "nice") is not authorization. Only "commit it" / "make a commit" / "go ahead and commit".
+8. **`--no-verify` forbidden.** A failing hook = diagnose it, don't skip it.
+9. **Mentioning AI/Claude in a commit or code = forbidden.** Author is always human.
+
+## About user-facing content
+
+10. **Correct accentuation in the UI language.** Match the locale's conventions; never plain ASCII in content humans read.
+11. **No technical jargon in the UI.** Blocklist adapted to the domain.
+
+## About critical pipelines
+
+12. **{{CRITICAL_PIPELINE}}** — example: "Payments always via gateway webhook, never poll status on demand"
+
+---
+
+**Cataloging:** if a new bug violated an invariant and the invariant was already here, the bug is the problem. If the invariant didn't exist, **catalog it immediately** after the fix is merged.

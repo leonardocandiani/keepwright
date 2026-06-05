@@ -1,58 +1,74 @@
-# Skill: setup-projeto-qualidade
+# keepwright
 
-Organizadora e criadora de projetos. Aplica uma arquitetura de qualidade alta em qualquer projeto git, novo ou existente.
+A Claude Code plugin that sets up and keeps a high-quality engineering
+architecture in any git repo. It implants a constitution, structured rules,
+GitHub Actions (CI, AI PR review, `@claude` mention, safe auto-merge), portable
+validators, and git hooks — detecting your stack and adapting. After setup it
+keeps maintaining: it audits the repo and uses multi-agent workflows to derive
+your design and writing-voice patterns, then turns them into rules and validators.
 
-## Como invocar
-
-No projeto-alvo:
+## Install
 
 ```
-/setup-projeto-qualidade
+/plugin marketplace add leonardocandiani/keepwright
+/plugin install keepwright
 ```
 
-Ou descrever o que quer ("quero arquitetura sólida com PR auto-review e rules vivas").
+## Commands
 
-## O que faz
+| Command | What it does |
+|---------|--------------|
+| `/keepwright:setup` | Interactive wizard. Detects the stack and installs the full architecture. |
+| `/keepwright:audit` | Checks integration coverage of an existing repo against the architecture. |
+| `/keepwright:review` | Compares repo state against the patterns derived from your code and docs. |
 
-1. **Fase 0:** detecta stack (Node/Deno/Python/etc), git, Claude config, CI/CD existente
-2. **Fase 1:** init git + repo GitHub + .gitignore
-3. **Fase 2:** estrutura `.claude/` (7 rules + settings co-author off + agents worktree)
-4. **Fase 3:** constituição CLAUDE.md equalizada + docs + AGENTS.md + registro-construcao.md
-5. **Fase 4:** GitHub Actions (CI, PR auto-review OAuth, claude-mention, pr-auto-merge, deploy adaptado à stack)
-6. **Fase 5:** validators portáveis (anti-secrets + sincronia CLAUDE.md + slots custom)
-7. **Fase 6:** hooks (lefthook + geradores auto)
-8. **Fase 7:** branch protection + CODEOWNERS
-9. **Fase 8:** smoke test do setup (cria PR de teste)
-10. **Fase 9:** cataloga em `docs/licoes/L-000-setup-inicial.md`
+## Three layers
 
-## Princípios
+- **Wizard** (`/keepwright:setup`) — an interactive command that detects git,
+  stack (Node/Deno/Python/etc), Claude config, and existing CI, then installs
+  the constitution, rules, workflows, validators, and hooks. Destructive steps
+  ask for explicit approval.
+- **Engine** — the deterministic part: portable validators and git hooks that
+  run the same way on every machine and in CI. No model in the loop, no flaky
+  output.
+- **Workflows** — multi-agent orchestration that audits an existing repo, derives
+  its design and writing-voice patterns, and writes them back as rules and
+  validators.
 
-- Análise antes de execução (Fase 0 nunca pulada)
-- Aprovação por onda (Fase 1 é destrutiva, requer ok explícito)
-- Validação dupla (smoke test após cada onda)
-- Preserva histórico (sub-repos com .git próprio não absorvidos sem confirmação)
-- Bloqueia secrets (grep agressivo antes de commit)
+## What it installs
 
-## Templates fornecidos
+- **Constitution** — `CLAUDE.md` as an equalized index of the rules, with the
+  always-loaded invariants inline.
+- **Rules** — `.claude/rules/`: invariants, pipeline equalization, the P1–P5
+  epistemic hierarchy, PR flow, lesson catalysis, parallel work streams, safe
+  merge, and empirical proof before merge.
+- **GitHub Actions** — `ci.yml` (type-check, lint, validators), `pr-auto-review.yml`
+  (heuristic + Claude review over OAuth), `claude-mention.yml` (`@claude` on
+  demand), `pr-auto-merge.yml` (auto-merge only for inert changes), and a deploy
+  template picked by stack.
+- **Validators** — portable TypeScript checks: secret scanning, CLAUDE.md sync,
+  epistemic-hierarchy gate, empirical-proof gate, webhook-active check.
+- **Hooks** — lefthook (pre-commit validators + type-check, conventional
+  commit-msg, force-push guard on main) plus structure and TODO generators.
 
-- `templates/CLAUDE.md.template` — constituição equalizada (índice das rules + invariantes sempre-carregados)
-- `templates/settings.json.template` — `includeCoAuthoredBy:false` + attribution vazia + allowlist
-- `templates/rules/` — 8 rules base (invariantes, equalização, hierarquia P1-P5, PR flow, catalisação, frentes, merge seguro, prova empírica pré-merge)
-- `templates/agents/` — worker.md (`isolation: worktree`, paralelismo isolado, git garantido)
-- `templates/workflows/` — ci.yml, pr-auto-review.yml (heurística + Claude review OAuth), claude-mention.yml (@claude OAuth), pr-auto-merge.yml (Tier S, fail-safe)
-- `templates/workflows/deploy/` — vercel, supabase-functions, docker-ghcr, npm-publish, static-pages (skill escolhe pela stack)
-- `templates/validators/` — validate-no-secrets.ts + validate-claude-md-sync.ts (gate de equalização) + validate-hierarquia-epistemica.ts (P1-P5) + validate-prova-empirica.ts (prova de funcionamento no PR) + validate-webhook-active.ts
-- `templates/scripts/` — gh-pr-merge-safe.sh (gate mergeStateStatus CLEAN) + setup-self-hosted-runner.sh (runner próprio, zera minutos GitHub)
-- `templates/hooks/` — gen-project-structure.ts, gen-todos-report.ts
+## Auth
 
-Placeholders: `{{PROJETO}}`, `{{PROJETO_UPPER}}`, `{{REPO}}`, `{{REPO_OWNER}}`, `{{MANTENEDOR}}`, `{{STACK}}`, `{{DATA_ATUAL}}`, etc. Skill substitui durante setup.
+The AI workflows use `CLAUDE_CODE_OAUTH_TOKEN`. Run `/install-github-app` and
+pick the subscription/OAuth option — it wires the token for you. Without the
+secret, the AI jobs skip gracefully. An API key is a documented fallback, not
+recommended.
 
-## Autenticação OAuth (prioritário)
+If you need to set the secret by hand, `scripts/setup-oauth-secret.sh
+<owner>/<repo>` reads the token from the macOS Keychain or
+`CLAUDE_CODE_OAUTH_TOKEN`, validates its shape, and sets it without mangling.
 
-Workflows de IA usam `CLAUDE_CODE_OAUTH_TOKEN`. Obter: `claude setup-token` no terminal. Setar: `gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <owner>/<repo>`. Sem o secret, jobs de IA skipam graceful. API key é fallback documentado, não recomendado.
+## Double merge gate
 
-## Duplo gate de merge
+Real auto-merge runs only for inert changes (docs, chronology, work-stream
+notes). Anything touching code, CI, rules, deploy, or config is human-gated: the
+AI prepares the PR, a human gives a one-line go. Detail in
+`templates/rules/07-merge-seguro.md.template`.
 
-Auto-merge real só pra Tier S inerte (docs, cronologia, frentes). Tudo que toca código, CI, rules, deploy ou config é Tier H: IA prepara, humano dá go de uma linha. Detalhe em `templates/rules/07-merge-seguro.md.template`.
+## License
 
-Ver SKILL.md pro detalhe completo do fluxo.
+MIT. See [LICENSE](LICENSE) and [AUTHORS.md](AUTHORS.md).

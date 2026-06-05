@@ -1,35 +1,39 @@
-# Autores
+# Authors
 
-Esta skill é coautorada por:
+keepwright is co-authored by:
 
 ## Leonardo Candiani
 
 - GitHub: [@leonardocandiani](https://github.com/leonardocandiani)
 - Site: [leonardocandiani.com.br](https://leonardocandiani.com.br)
-- Papel: idealização, arquitetura, implementação inicial das 10 fases, rules e templates
+- Role: concept, architecture, initial implementation of the phases, rules, and templates
 
 ## SixQuasar
 
-Empresa de tecnologia. Fundada por Leonardo Candiani, Ricardo e Rodrigo. Atuação em Paraná, Rio de Janeiro e Maranhão.
+A tech company. Founded by Leonardo Candiani, Ricardo, and Rodrigo. Operating in
+Paraná, Rio de Janeiro, and Maranhão.
 
 - GitHub: [@sixquasar](https://github.com/sixquasar)
 - Site: [sixquasar.pro](https://sixquasar.pro)
-- Papel: refinamento da metodologia em produção real (SixClaw, SixClaw CEO, Cote.Zap, Ofertix, Sixosteria, Vox, Lupe, EasyQuote), validação das 7 rules em projetos com cliente, contribuições contínuas
+- Role: refining the methodology in real production (SixClaw, SixClaw CEO,
+  Cote.Zap, Ofertix, Sixosteria, Vox, Lupe, EasyQuote), validating the rules on
+  client projects, ongoing contributions
 
 <br>
 
-## Contribuidores
+## Contributors
 
-Esta seção lista pessoas que contribuíram com PRs aceitos. Adicionada via PR após primeira contribuição.
+This section lists people who contributed accepted PRs. Added via PR after a
+first contribution.
 
 <!-- ALL-CONTRIBUTORS-LIST:START -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 <br>
 
-## Como entrar pra essa lista
+## How to get on this list
 
-1. Abrir PR que seja aceito (qualquer tipo: feat, fix, docs, template)
-2. Mantenedor adiciona seu nome aqui no merge
+1. Open a PR that gets accepted (any type: feat, fix, docs, template).
+2. The maintainer adds your name here on merge.
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) pra orientações.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidance.

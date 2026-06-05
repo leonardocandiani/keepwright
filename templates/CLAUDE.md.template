@@ -1,33 +1,33 @@
-# {{PROJETO}}
+# {{PROJECT}}
 
-{{DESCRICAO_UMA_LINHA}}
+{{ONE_LINE_DESCRIPTION}}
 
-## Como ler este projeto
+## How to read this project
 
-| Quando | Vai pra |
+| When | Go to |
 |---|---|
-| Primeira vez aqui | `README.md` |
-| Regras invioláveis | `.claude/rules/01-invariantes.md` |
-| Como mexer sem quebrar coisa | `.claude/rules/02-equalizacao-pipeline.md` |
-| Discordando do código? | `.claude/rules/03-hierarquia-epistemica.md` |
-| Abrindo PR | `.claude/rules/04-pr-flow.md` + `.github/PULL_REQUEST_TEMPLATE.md` |
-| Vai mergear um PR? | `.claude/rules/07-merge-seguro.md` |
-| Mudou código? Prove que roda | `.claude/rules/08-prova-empirica-pre-merge.md` |
-| Aprendeu algo? | `.claude/rules/05-catalisacao-licoes.md` |
-| Investigação grande | `.claude/rules/06-frentes-paralelas.md` |
-| Histórico cronológico | `registro-construcao.md` |
-| Diário vivo | `AGENTS.md` |
+| First time here | `README.md` |
+| Inviolable rules | `.claude/rules/01-invariants.md` |
+| How to change things without breaking them | `.claude/rules/02-pipeline-equalization.md` |
+| Disagreeing with the code? | `.claude/rules/03-epistemic-hierarchy.md` |
+| Opening a PR | `.claude/rules/04-pr-flow.md` + `.github/PULL_REQUEST_TEMPLATE.md` |
+| Going to merge a PR? | `.claude/rules/07-safe-merge.md` |
+| Changed code? Prove it runs | `.claude/rules/08-empirical-proof.md` |
+| Learned something? | `.claude/rules/05-lesson-cataloging.md` |
+| Large investigation | `.claude/rules/06-parallel-workstreams.md` |
+| Chronological history | `registro-construcao.md` |
+| Living journal | `AGENTS.md` |
 
-> Esta tabela é a **equalização do CLAUDE.md**: toda rule em `.claude/rules/`
-> tem ponteiro aqui. Rule sem ponteiro = invisível pra quem lê só o CLAUDE.md.
-> O validador `validate-claude-md-sync` quebra o CI se algo dessincronizar.
+> This table is the **equalization of CLAUDE.md**: every rule in `.claude/rules/`
+> has a pointer here. A rule without a pointer = invisible to anyone reading only CLAUDE.md.
+> The `validate-claude-md-sync` validator breaks CI if anything desyncs.
 
-## Arquitetura
+## Architecture
 
-{{ARQUITETURA}}
+{{ARCHITECTURE}}
 
-Toda mudança consulta `.claude/rules/02-equalizacao-pipeline.md` pra saber
-quais camadas tocar e em que ordem.
+Every change consults `.claude/rules/02-pipeline-equalization.md` to know
+which layers to touch and in what order.
 
 ## Stack
 
@@ -35,48 +35,48 @@ quais camadas tocar e em que ordem.
 
 ## Deploy
 
-{{DEPLOY_RESUMO}}
+{{DEPLOY_SUMMARY}}
 
-Detalhe e gatilhos em `.github/workflows/` + `docs/deploys/`.
+Details and triggers in `.github/workflows/` + `docs/deploys/`.
 
-## Merge seguro (invariante)
+## Safe merge (invariant)
 
-Nunca `gh pr merge` direto. Sempre `bash scripts/gh-pr-merge-safe.sh <PR>`
-(gate `mergeStateStatus CLEAN`). Auto-merge automático só pra Tier S inerte
-(`docs/`, `registro-construcao.md`, `.planning/frentes/`). Tudo que toca
-código, CI, rules, deploy ou config é Tier H: a IA prepara, o mantenedor dá
-o go. Detalhe em `.claude/rules/07-merge-seguro.md`.
+Never `gh pr merge` directly. Always `bash scripts/gh-pr-merge-safe.sh <PR>`
+(`mergeStateStatus CLEAN` gate). Automatic auto-merge only for inert Tier S
+(`docs/`, `registro-construcao.md`, `.planning/workstreams/`). Anything that touches
+code, CI, rules, deploy, or config is Tier H: the AI prepares, the maintainer gives
+the go. Details in `.claude/rules/07-safe-merge.md`.
 
-## Agentes (paralelismo isolado)
+## Agents (isolated parallelism)
 
-Este projeto é git, então `.claude/agents/worker.md` usa
-`isolation: worktree`: cada worker spawnado trabalha num worktree git
-próprio, sem colidir no working tree do orquestrador nem de outros workers
-paralelos. Use pra fan-out de implementação. O worker entrega branch pronto,
-o merge segue `.claude/rules/07-merge-seguro.md`. Agentes read-only não
-usam worktree.
+This project is git, so `.claude/agents/worker.md` uses
+`isolation: worktree`: each spawned worker works in its own git worktree,
+without colliding in the orchestrator's working tree or that of other parallel
+workers. Use it for implementation fan-out. The worker delivers a ready branch,
+and the merge follows `.claude/rules/07-safe-merge.md`. Read-only agents don't
+use a worktree.
 
-## Hierarquia epistêmica (resumo)
+## Epistemic hierarchy (summary)
 
-P1 sintoma reportado > P2 logs em produção > P3 estado do banco > P4 código
-> P5 inferência abstrata. Quando duas fontes contradizem, a mais alta vence.
-Detalhe em `.claude/rules/03-hierarquia-epistemica.md`.
+P1 reported symptom > P2 production logs > P3 database state > P4 code
+> P5 abstract inference. When two sources contradict, the highest one wins.
+Details in `.claude/rules/03-epistemic-hierarchy.md`.
 
-## Prova empírica pré-merge (resumo)
+## Pre-merge empirical proof (summary)
 
-Mudança que altera comportamento em runtime só mergeia com **prova de que
-funciona** contra ambiente real, colada no PR (`## VALIDAÇÃO EMPÍRICA`).
-"O código está correto" / "type-check verde" NÃO é prova — compilar ≠ funcionar.
-3ª perna do tripé empírico (análise → hierarquia → prova). Gate
-`validate-prova-empirica.ts`. Detalhe em
-`.claude/rules/08-prova-empirica-pre-merge.md`.
+A change that alters runtime behavior only merges with **proof that it
+works** against a real environment, pasted into the PR (`## EMPIRICAL VALIDATION`).
+"The code is correct" / "type-check green" is NOT proof — compiling ≠ working.
+3rd leg of the empirical tripod (analysis → hierarchy → proof). Gate
+`validate-empirical-proof.ts`. Details in
+`.claude/rules/08-empirical-proof.md`.
 
-## Princípio nuclear
+## Core principle
 
-Toda mudança catalisa lição imediatamente após merge. Não acumula "vou
-catalogar depois". Passa de 1 dia, perdeu. Ver
-`.claude/rules/05-catalisacao-licoes.md`.
+Every change catalogs a lesson immediately after merge. It does not pile up as "I'll
+catalog it later". More than 1 day goes by, it's lost. See
+`.claude/rules/05-lesson-cataloging.md`.
 
-## Data atual
+## Current date
 
-> {{DATA_ATUAL}}
+> {{CURRENT_DATE}}
