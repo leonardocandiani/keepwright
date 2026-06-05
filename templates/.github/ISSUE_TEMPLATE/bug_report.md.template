@@ -1,0 +1,39 @@
+---
+name: Bug report
+about: Report incorrect behavior in {{PROJECT}}
+title: "[bug] "
+labels: bug, needs-triage
+assignees: {{MAINTAINER}}
+---
+
+## Description
+
+<!-- Describe the bug in 1-3 sentences -->
+
+## How to reproduce
+
+1. Exact command or action:
+2. Initial state:
+3. Step where it failed:
+4. Error output:
+   ```
+   <paste here>
+   ```
+
+## Expected behavior
+
+<!-- What you expected to happen -->
+
+## Observed behavior
+
+<!-- What actually happened -->
+
+## Environment
+
+- {{PROJECT}} version: <!-- tag or commit hash -->
+- OS: <!-- macOS 14, Ubuntu 22, etc -->
+- Runtime/tooling versions: <!-- node, python, gh, etc -->
+
+## Additional context
+
+<!-- Screenshots, logs, anything that helps -->

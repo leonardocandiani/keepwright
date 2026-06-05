@@ -87,6 +87,24 @@
           "description": "Writing-voice conventions found in the repo (commit style, UI copy tone, doc register, banned terms)."
         }
       }
+    },
+    "issues": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Automatic issue triage. The triage workflow classifies new issues via GitHub Models (free in Actions) and a deterministic job applies only advisory labels — never closes, assigns, or merges.",
+      "properties": {
+        "triage": {
+          "type": "string",
+          "enum": ["off", "github-models"],
+          "default": "github-models",
+          "description": "github-models runs the classifier free over the GITHUB_TOKEN; off makes the triage workflow a no-op."
+        },
+        "model": {
+          "type": "string",
+          "default": "openai/gpt-4o-mini",
+          "description": "GitHub Models model id for the classify step, e.g. openai/gpt-4o-mini."
+        }
+      }
     }
   }
 }

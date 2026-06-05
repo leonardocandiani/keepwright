@@ -5,6 +5,37 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [2.1.0] — 2026-06-05
+
+### Added
+
+- **Automatic issue triage over free GitHub Models.** New workflow
+  `issue-triage.yml`: when an issue is opened/edited/reopened, a classify job
+  asks GitHub Models (free in Actions over the `GITHUB_TOKEN`, no secret) for
+  strict JSON — suggested labels, possible duplicate, missing info, severity,
+  summary — and a deterministic apply job acts on it. Triage is **advisory**: it
+  never closes, assigns, or merges; a human stays in the merge path.
+- **Safe by construction.** The workflow holds `issues: write` + `models: read` +
+  `contents: read` and nothing else — no pull-requests, no id-token, no
+  contents: write. A prompt injection in an issue body cannot reach code, a
+  secret, or a merge. The issue body is passed as untrusted data in a separate
+  `user` message wrapped in `<issue_body>`; the model's label suggestions are
+  intersected with the repo's **live** label set (`gh label list`) so a
+  hallucinated label is dropped — the workflow never creates labels.
+- **Graceful degradation + idempotency.** No GitHub Models access, a rate limit,
+  or malformed output falls back to a `needs:human-triage` label and stops. The
+  advisory comment is keyed by an HTML marker and updated in place, so re-triggers
+  never spam the issue.
+- **Issue templates + label seeding.** `bug_report`, `feature_request`, and a
+  `config.yml` (with `needs-triage`), plus `scripts/seed-labels.sh` to create the
+  keepwright-specific labels once at setup — deterministic and human-run, kept out
+  of the triage workflow's blast radius.
+- New rule `09-issue-triage.md` (advisory; untrusted-data contract; P5 never
+  overrides P1; documents coexistence with the `@claude` mention workflow), wired
+  into the `CLAUDE.md` equalization table.
+- Config gains an optional `issues` block: `{ "triage": "off" | "github-models",
+  "model": "openai/gpt-4o-mini" }` (default: on, gpt-4o-mini).
+
 ## [2.0.2] — 2026-06-05
 
 ### Fixed
@@ -171,5 +202,6 @@ real-world projects.
 - Containerized service
 - Monorepo (installs multiple deploy variants)
 
+[2.1.0]: https://github.com/leonardocandiani/keepwright/compare/v2.0.2...v2.1.0
 [2.0.0]: https://github.com/leonardocandiani/keepwright/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/leonardocandiani/keepwright/releases/tag/v1.0.0

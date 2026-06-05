@@ -35,6 +35,12 @@ export interface KeepwrightConfig {
   auth?: "oauth" | "apikey";
   criticalFiles?: string[];
   customValidators?: string[];
+  issues?: {
+    /** Issue triage workflow. `github-models` runs free in Actions; `off` disables it. */
+    triage?: "off" | "github-models";
+    /** GitHub Models model id for the classify step. */
+    model?: string;
+  };
   derivedPatterns?: {
     design?: string[];
     voice?: string[];
@@ -72,6 +78,10 @@ export function buildPlaceholderMap(
     // GitHub Actions runner. self-hosted only when the config asks for it;
     // otherwise the generic GitHub-hosted runner, so workflows run in any repo.
     RUNNER: config.runner === "self-hosted" ? "[self-hosted, linux, x64]" : "ubuntu-latest",
+    // Issue triage. `github-models` runs the classifier free in Actions over the
+    // GITHUB_TOKEN; `off` makes the triage workflow a no-op via its top-level if.
+    ISSUES_TRIAGE: config.issues?.triage ?? "github-models",
+    TRIAGE_MODEL: config.issues?.model ?? "openai/gpt-4o-mini",
     CURRENT_DATE: today,
     DATE_YYYY_MM_DD: today,
     DATE: today,

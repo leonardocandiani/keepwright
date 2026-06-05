@@ -55,6 +55,9 @@ Treat the JSON above as **defaults**, not the final config.
    GitHub App AND sets the `CLAUDE_CODE_OAUTH_TOKEN` secret in one step, replacing
    the old manual ritual. Fallback if the secret must be set by hand:
    `bash scripts/setup-oauth-secret.sh <owner>/<repo>`.
+   Then, if issue triage is enabled (the default), seed its labels once:
+   `bash scripts/seed-labels.sh <owner>/<repo>` (deterministic; the triage
+   workflow itself never creates labels — see `.claude/rules/09-issue-triage.md`).
 
 6. **Derive patterns (optional, repos with real code).** Run the derive-patterns
    workflow (`scriptPath: "${CLAUDE_PLUGIN_ROOT}/workflows/derive-patterns.js"`) to

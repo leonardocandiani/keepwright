@@ -1,0 +1,29 @@
+---
+name: Feature request
+about: Suggest a new capability or improvement for {{PROJECT}}
+title: "[feat] "
+labels: enhancement, needs-triage
+assignees: {{MAINTAINER}}
+---
+
+## Problem it solves
+
+<!-- What pain does this feature address? Why does it matter? -->
+
+## Proposed solution
+
+<!-- How do you picture it? Pseudo-code, usage example, etc. -->
+
+## Alternatives considered
+
+<!-- What other approaches did you weigh? Why is this the best one? -->
+
+## Related stack/context
+
+<!-- If specific to a stack or part of the system, mention it here -->
+
+## Willingness to contribute
+
+- [ ] I can open the PR
+- [ ] I can help test
+- [ ] Just suggesting, no availability to implement
