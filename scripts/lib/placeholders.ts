@@ -59,6 +59,7 @@ export function buildPlaceholderMap(
   config: KeepwrightConfig,
 ): Record<string, string> {
   const today = new Date().toISOString().slice(0, 10);
+  const crit = config.criticalFiles ?? [];
   return {
     PROJECT: config.project,
     PROJECT_UPPER: config.project.toUpperCase(),
@@ -68,9 +69,16 @@ export function buildPlaceholderMap(
     STACK: config.stack,
     LAYERS_REF: (config.layers ?? []).join(", "),
     REVIEW_MODEL: DEFAULT_REVIEW_MODEL,
+    // GitHub Actions runner. self-hosted only when the config asks for it;
+    // otherwise the generic GitHub-hosted runner, so workflows run in any repo.
+    RUNNER: config.runner === "self-hosted" ? "[self-hosted, linux, x64]" : "ubuntu-latest",
     CURRENT_DATE: today,
     DATE_YYYY_MM_DD: today,
     DATE: today,
+    // criticalFiles[0..1] feed the PR auto-review grep patterns. Left as a
+    // literal {{CRITICAL_FILE_n}} for the maintainer to fill when unset.
+    ...(crit[0] ? { CRITICAL_FILE_1: crit[0] } : {}),
+    ...(crit[1] ? { CRITICAL_FILE_2: crit[1] } : {}),
   };
 }
 

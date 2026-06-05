@@ -17,7 +17,7 @@ concurrency:
 jobs:
   auto-review:
     name: Heuristic auto-review
-    runs-on: [self-hosted, linux, x64]
+    runs-on: {{RUNNER}}
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
@@ -30,34 +30,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # These patterns come from keepwright.config.json criticalFiles[]. Edit
+      # them to match YOUR repo's load-bearing files (schemas, auth, core
+      # runtime, senders — anything a reviewer must watch).
       - name: Detect critical layer changes
         id: critical
         run: |
-          if grep -qE "(src/utils/types|src/utils/schemas)" changed_files.txt; then
-            echo "schema_changed=true" >> $GITHUB_OUTPUT
+          if grep -qE "{{CRITICAL_FILE_1}}" changed_files.txt; then
+            echo "critical1_changed=true" >> $GITHUB_OUTPUT
           fi
-          if grep -qE "src/whatsapp/sender\.ts" changed_files.txt; then
-            echo "sender_changed=true" >> $GITHUB_OUTPUT
-          fi
-          if grep -qE "src/runtime/(claude-interactive|invoker-stream)\.ts" changed_files.txt; then
-            echo "runtime_changed=true" >> $GITHUB_OUTPUT
+          if grep -qE "{{CRITICAL_FILE_2}}" changed_files.txt; then
+            echo "critical2_changed=true" >> $GITHUB_OUTPUT
           fi
           if grep -qE "\.claude/rules/" changed_files.txt; then
             echo "rules_changed=true" >> $GITHUB_OUTPUT
           fi
 
-      # CUSTOMIZE: replace sender_changed/runtime_changed with warnings for
-      # YOUR critical files. The example below is generic — adapt the
-      # mentioned invariants to your project.
       - name: Warn critical file 1 changed
-        if: steps.critical.outputs.sender_changed == 'true'
+        if: steps.critical.outputs.critical1_changed == 'true'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{CRITICAL_FILE_1}} changed** — confirm invariants {{INVARIANT_REFS}} in \`.claude/rules/01-invariants.md\`. E2E smoke required."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Warn critical file 2 changed
-        if: steps.critical.outputs.runtime_changed == 'true'
+        if: steps.critical.outputs.critical2_changed == 'true'
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ **{{CRITICAL_FILE_2}} changed** — confirm invariants {{INVARIANT_REFS}}. E2E smoke required."
         env:
@@ -109,7 +106,7 @@ jobs:
 
   check-key:
     name: Check Claude token
-    runs-on: [self-hosted, linux, x64]
+    runs-on: {{RUNNER}}
     outputs:
       has_key: ${{ steps.check.outputs.has_key }}
     steps:
@@ -123,7 +120,7 @@ jobs:
 
   claude-review:
     name: Claude AI review (informational)
-    runs-on: [self-hosted, linux, x64]
+    runs-on: {{RUNNER}}
     needs: check-key
     if: ${{ needs.check-key.outputs.has_key == 'true' && !github.event.pull_request.draft }}
     timeout-minutes: 20
@@ -165,7 +162,7 @@ jobs:
         with: { fetch-depth: 1 }
 
       # setup-node@v4 required BEFORE the deterministic publish step.
-      # myoung34/github-runner self-hosted does NOT guarantee native Node.
+      # Not all runners ship Node natively, so install it explicitly.
       # Without it, the node parser reading claude-execution-output.json
       # fails silently.
       - name: Setup Node (deterministic publish)

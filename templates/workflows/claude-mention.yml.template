@@ -50,7 +50,7 @@ jobs:
     name: Check trigger + key
     # Loop-safe: greps @claude in the event body. The bot's own comment does
     # NOT contain "@claude" → guard skips → no infinite recursion.
-    runs-on: [self-hosted, linux, x64]
+    runs-on: {{RUNNER}}
     outputs:
       go: ${{ steps.decide.outputs.go }}
       pr_or_issue: ${{ steps.decide.outputs.pr_or_issue }}
@@ -90,7 +90,7 @@ jobs:
     name: Claude responds
     needs: guard
     if: ${{ needs.guard.outputs.go == 'true' }}
-    runs-on: [self-hosted, linux, x64]
+    runs-on: {{RUNNER}}
     steps:
       - uses: actions/checkout@v5
         with:

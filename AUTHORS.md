@@ -15,8 +15,7 @@ Paraná, Rio de Janeiro, and Maranhão.
 
 - GitHub: [@sixquasar](https://github.com/sixquasar)
 - Site: [sixquasar.pro](https://sixquasar.pro)
-- Role: refining the methodology in real production (SixClaw, SixClaw CEO,
-  Cote.Zap, Ofertix, Sixosteria, Vox, Lupe, EasyQuote), validating the rules on
+- Role: refining the methodology in real production, validating the rules on
   client projects, ongoing contributions
 
 <br>
