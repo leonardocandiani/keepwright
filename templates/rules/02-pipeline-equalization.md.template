@@ -71,4 +71,4 @@ C7  INTEGRATIONS         external APIs
 
 ## Where to catalog a large change
 
-Every change that reaches **3+ layers** becomes `docs/casos-referencia/YYYY-MM-DD-titulo.md` documenting touched layers and decisions.
+Every change that reaches **3+ layers** becomes `docs/reference-cases/YYYY-MM-DD-title.md` documenting touched layers and decisions.

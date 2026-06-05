@@ -17,7 +17,7 @@
 
 ## 2. Canonical principles (catalogued lessons)
 
-> Add §2.1, §2.2, ... as you catalogue lessons in `docs/licoes/L-XXX-*.md`. Keep them in chronological catalogue order.
+> Add §2.1, §2.2, ... as you catalogue lessons in `docs/lessons/L-XXX-*.md`. Keep them in chronological catalogue order.
 
 ### 2.1. {{LESSON_TITLE}} (L-XXX)
 
@@ -30,7 +30,7 @@ Catalogued after {{INCIDENT_DATE}}. {{ROOT_CAUSE_SHORT}}.
 2. {{COMPONENT_2}}
 3. {{COMPONENT_3}}
 
-**Founding case**: `docs/casos-referencia/{{SLUG}}-{{DATE}}.md` or `docs/licoes/L-XXX-{{SLUG}}.md`.
+**Founding case**: `docs/reference-cases/{{SLUG}}-{{DATE}}.md` or `docs/lessons/L-XXX-{{SLUG}}.md`.
 
 ---
 
@@ -153,7 +153,7 @@ Canonical flow per change:
 6. **Claude AI review:** comments an APPROVED / APPROVED WITH CAVEATS / REJECTED verdict on the PR (§8 format).
 7. **Human approval:** the maintainer (CODEOWNERS) reads the verdict + caveats and decides.
 8. **Merge:** ONLY via the `scripts/gh-pr-merge-safe.sh <PR>` wrapper (checks `mergeStateStatus: CLEAN` first — double gate).
-9. **Post-merge:** cataloguing (`docs/licoes/L-XXX-*.md` if applicable + a chronological entry in `registro-construcao.md`).
+9. **Post-merge:** cataloguing (`docs/lessons/L-XXX-*.md` if applicable + a chronological entry in `build-log.md`).
 
 ---
 
@@ -216,6 +216,6 @@ A descriptive doc treated as a validated implementation is the most dangerous fa
 - `.claude/rules/05-lesson-cataloging.md` — where/how to catalogue
 - `.claude/rules/06-parallel-workstreams.md` — `.planning/workstreams/` workflow
 - `.claude/rules/07-safe-merge.md` — double gate + `mergeStateStatus`
-- `docs/licoes/L-XXX-*.md` — catalogued lessons (growing folder)
-- `docs/casos-referencia/YYYY-MM-DD-*.md` — empirical founding cases
-- `registro-construcao.md` — raw append-only chronology
+- `docs/lessons/L-XXX-*.md` — catalogued lessons (growing folder)
+- `docs/reference-cases/YYYY-MM-DD-*.md` — empirical founding cases
+- `build-log.md` — raw append-only chronology

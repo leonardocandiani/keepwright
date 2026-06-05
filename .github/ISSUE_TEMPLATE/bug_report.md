@@ -1,45 +1,45 @@
 ---
 name: Bug report
-about: Reportar um comportamento incorreto da skill
+about: Report incorrect behavior in keepwright
 title: "[bug] "
 labels: bug
 assignees: leonardocandiani
 ---
 
-## Descrição
+## Description
 
-<!-- Descreve o bug em 1-3 frases -->
+<!-- Describe the bug in 1-3 sentences -->
 
-## Como reproduzir
+## How to reproduce
 
-1. Stack do projeto-alvo (Node/Python/etc):
-2. Estado inicial (git, CLAUDE.md, .claude/ existiam?):
-3. Comando exato disparado:
+1. Target project stack (Node/Python/etc):
+2. Initial state (did git, CLAUDE.md, .claude/ already exist?):
+3. Exact command run:
    ```
-   /setup-projeto-qualidade
+   /keepwright:setup
    ```
-4. Fase em que falhou:
-5. Output do erro:
+4. Step where it failed:
+5. Error output:
    ```
-   <cola aqui>
+   <paste here>
    ```
 
-## Comportamento esperado
+## Expected behavior
 
-<!-- O que você esperava que acontecesse -->
+<!-- What you expected to happen -->
 
-## Comportamento observado
+## Observed behavior
 
-<!-- O que efetivamente aconteceu -->
+<!-- What actually happened -->
 
-## Ambiente
+## Environment
 
-- Versão da skill: <!-- v1.0.0, ou commit hash -->
+- keepwright version: <!-- v2.0.0, or commit hash -->
 - Claude Code: <!-- claude --version -->
 - OS: <!-- macOS 14, Ubuntu 22, etc -->
 - Shell: <!-- bash, zsh, fish -->
 - gh CLI: <!-- gh --version -->
 
-## Contexto adicional
+## Additional context
 
-<!-- Screenshots, logs, qualquer coisa que ajude -->
+<!-- Screenshots, logs, anything that helps -->

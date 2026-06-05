@@ -48,8 +48,8 @@ A workstream is a **namespace for thinking and planning**. Don't confuse it with
    done, what's pending, on-the-fly decisions.
 4. **Audit** (`03-auditoria.md`) — post-merge. What worked, what
    didn't. Lessons.
-5. **Cataloging** — the audit becomes `docs/licoes/L-XXX-*.md` and/or
-   `docs/casos-referencia/`. The workstream is archived as history, not
+5. **Cataloging** — the audit becomes `docs/lessons/L-XXX-*.md` and/or
+   `docs/reference-cases/`. The workstream is archived as history, not
    deleted (institutional memory).
 
 ## Anti-pattern

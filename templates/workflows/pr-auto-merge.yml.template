@@ -56,7 +56,7 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              docs/*|.planning/workstreams/*|registro-construcao.md|.project-structure.md|.todos-report.md) ;;
+              docs/*|.planning/workstreams/*|build-log.md|.project-structure.md|.todos-report.md) ;;
               *) echo "Outside Tier S: $f"; BAD=1;;
             esac
           done < <(gh pr view "$N" -R "$GITHUB_REPOSITORY" --json files -q '.files[].path')

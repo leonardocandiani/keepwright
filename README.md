@@ -1,8 +1,15 @@
+<div align="center">
+
+<img src="assets/keepwright-forge.gif" alt="keepwright" width="300">
+
 # keepwright
 
-A Claude Code plugin that sets up and keeps a high-quality engineering
-architecture in any git repo. It implants a constitution, structured rules,
-GitHub Actions (CI, AI PR review, `@claude` mention, safe auto-merge), portable
+**Set up and keep a high-quality engineering architecture in any git repo.**
+
+</div>
+
+A Claude Code plugin that implants a constitution, structured rules, GitHub
+Actions (CI, AI PR review, `@claude` mention, safe auto-merge), portable
 validators, and git hooks — detecting your stack and adapting. After setup it
 keeps maintaining: it audits the repo and uses multi-agent workflows to derive
 your design and writing-voice patterns, then turns them into rules and validators.
@@ -67,7 +74,7 @@ If you need to set the secret by hand, `scripts/setup-oauth-secret.sh
 Real auto-merge runs only for inert changes (docs, chronology, work-stream
 notes). Anything touching code, CI, rules, deploy, or config is human-gated: the
 AI prepares the PR, a human gives a one-line go. Detail in
-`templates/rules/07-merge-seguro.md.template`.
+`templates/rules/07-safe-merge.md.template`.
 
 ## License
 

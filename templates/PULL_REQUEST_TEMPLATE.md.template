@@ -45,10 +45,10 @@ Reference: `.claude/rules/02-pipeline-equalization.md`
 
 ## Cataloging
 
-- [ ] Lesson cataloged in `docs/licoes/L-XXX-*.md`
-- [ ] Reference case created in `docs/casos-referencia/YYYY-MM-DD-*.md` (if 3+ layers)
+- [ ] Lesson cataloged in `docs/lessons/L-XXX-*.md`
+- [ ] Reference case created in `docs/reference-cases/YYYY-MM-DD-*.md` (if 3+ layers)
 - [ ] Rule updated in `.claude/rules/` (if a new convention)
-- [ ] `registro-construcao.md` append entry
+- [ ] `build-log.md` append entry
 - [ ] `AGENTS.md` entry with date and layers
 
 ## Risk

@@ -15,7 +15,7 @@
 | Changed code? Prove it runs | `.claude/rules/08-empirical-proof.md` |
 | Learned something? | `.claude/rules/05-lesson-cataloging.md` |
 | Large investigation | `.claude/rules/06-parallel-workstreams.md` |
-| Chronological history | `registro-construcao.md` |
+| Chronological history | `build-log.md` |
 | Living journal | `AGENTS.md` |
 
 > This table is the **equalization of CLAUDE.md**: every rule in `.claude/rules/`
@@ -43,7 +43,7 @@ Details and triggers in `.github/workflows/` + `docs/deploys/`.
 
 Never `gh pr merge` directly. Always `bash scripts/gh-pr-merge-safe.sh <PR>`
 (`mergeStateStatus CLEAN` gate). Automatic auto-merge only for inert Tier S
-(`docs/`, `registro-construcao.md`, `.planning/workstreams/`). Anything that touches
+(`docs/`, `build-log.md`, `.planning/workstreams/`). Anything that touches
 code, CI, rules, deploy, or config is Tier H: the AI prepares, the maintainer gives
 the go. Details in `.claude/rules/07-safe-merge.md`.
 

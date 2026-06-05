@@ -67,7 +67,7 @@ Treat the JSON above as **defaults**, not the final config.
    parallel verification. Fix any `critical` issue before finishing.
 
 8. **Smoke + catalog.** Optionally open a trivial test PR to confirm CI + AI
-   review + auto-merge end-to-end, then catalog the run as `docs/licoes/L-000`.
+   review + auto-merge end-to-end, then catalog the run as `docs/lessons/L-000`.
 
 ## Rules of engagement
 

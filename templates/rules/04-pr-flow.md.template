@@ -18,7 +18,7 @@ Every merge into `main` goes through a PR. No exceptions, even for a typo.
 - **Touched layers** (list of layers from `02-pipeline-equalization.md`)
 - **Smoke test run** (which one, result)
 - **Breaks contract with a neighboring module?** (layers that need to produce the same result)
-- **Catalog a lesson?** (reference to the `docs/licoes/L-XXX-*.md` created)
+- **Catalog a lesson?** (reference to the `docs/lessons/L-XXX-*.md` created)
 
 ## Review
 
@@ -40,10 +40,10 @@ Every merge into `main` goes through a PR. No exceptions, even for a typo.
 
 ## Post-merge — cataloging
 
-1. If the PR touched 3+ layers, create `docs/casos-referencia/YYYY-MM-DD-titulo.md`
-2. If the PR fixed a bug, add an entry in `docs/licoes/L-XXX-titulo.md`
+1. If the PR touched 3+ layers, create `docs/reference-cases/YYYY-MM-DD-title.md`
+2. If the PR fixed a bug, add an entry in `docs/lessons/L-XXX-title.md`
 3. If the PR established a new convention, turn it into a rule in `.claude/rules/` (and add a pointer in `CLAUDE.md`)
-4. Append to `registro-construcao.md` (chronological line)
+4. Append to `build-log.md` (chronological line)
 
 ## Anti-pattern
 

@@ -69,7 +69,7 @@ A functional PR MUST have `## EMPIRICAL VALIDATION (real environment)` with:
 ## Catalysis
 
 When EPP catches a "works in my head" that would have become a bug, catalyze it
-in `docs/licoes/L-XXX-*.md` + an entry in `REVIEW.md §2.X`. The proof — not
+in `docs/lessons/L-XXX-*.md` + an entry in `REVIEW.md §2.X`. The proof — not
 reading the code — is what gives confidence to merge.
 
 ## Refs

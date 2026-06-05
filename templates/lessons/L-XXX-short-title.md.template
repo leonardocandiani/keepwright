@@ -66,7 +66,7 @@ similar context, not just this project.
 
 ## Cross-layer refs
 
-- Founding case: `docs/casos-referencia/{{slug}}-{{date}}.md` (if applicable)
+- Founding case: `docs/reference-cases/{{slug}}-{{date}}.md` (if applicable)
 - Canonical principle: `REVIEW.md §2.X`
 - Local rule: `.claude/rules/{{NN-slug}}.md` (if it generated a new rule)
 - Validator: `scripts/validators/validate-{{slug}}.ts` (if it generated a validator)

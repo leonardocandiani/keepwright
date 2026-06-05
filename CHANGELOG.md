@@ -34,13 +34,13 @@ workflows.
   from the macOS Keychain or `CLAUDE_CODE_OAUTH_TOKEN`, validates its shape, and
   sets the secret without mangling.
 - **Empirical Proof Before Merge (EPP)** — 3rd leg of the empirical tripod
-  (analysis → hierarchy → proof). New rule `08-prova-empirica-pre-merge.md` +
-  validator `validate-prova-empirica.ts`: a functional change merges only with
+  (analysis → hierarchy → proof). New rule `08-empirical-proof.md` +
+  validator `validate-empirical-proof.ts`: a functional change merges only with
   evidence that it **runs** against a real environment (command output, log,
   query, reproduced bug scenario), pasted into the PR under
   `## EMPIRICAL VALIDATION`. HARD in CI (with a PR body), REMINDER on pre-push.
   Exempts docs/refactor/style/config/workflow. Bypass via
-  `# prova-empirica: ignore <reason>`. Equalized across CLAUDE.md (pointer +
+  `# empirical-proof: ignore <reason>`. Equalized across CLAUDE.md (pointer +
   summary), REVIEW.md (§3.1 critical criterion + §3.5 canonical section + §5
   validators), PULL_REQUEST_TEMPLATE (EMPIRICAL VALIDATION section + checklist),
   `pr-auto-review.yml` (hard gate), and lefthook pre-push (reminder).
@@ -71,7 +71,7 @@ workflows.
 - Python variant with Ruff + Mypy + Hatch
 - Rust variant with Cargo + Clippy
 - UI-specific validator (forbidden terms in user-facing strings)
-- Interactive wizard to customize the `01-invariantes.md` invariants
+- Interactive wizard to customize the `01-invariants.md` invariants
 
 ## [1.0.0] — 2026-05-15
 
@@ -94,15 +94,15 @@ SixClaw, Cote.Zap, Ofertix, Sixosteria, Vox, and Lupe.
 #### Constitution
 - `CLAUDE.md.template` as an equalized index of the rules + always-loaded
   invariants
-- `AGENTS.md` (append-only living journal) + `registro-construcao.md` (chronology)
-- `docs/{casos-referencia,licoes,deploys,api,arquitetura}/` structure
+- `AGENTS.md` (append-only living journal) + `build-log.md` (chronology)
+- `docs/{reference-cases,lessons,deploys,api,architecture}/` structure
 
 #### GitHub Actions
 - `ci.yml` — type-check, lint, validators (PR + push main)
 - `pr-auto-review.yml` — 3 jobs: heuristic + check-key + Claude review over OAuth
 - `claude-mention.yml` — `@claude` on demand in a PR/issue/review
 - `pr-auto-merge.yml` — auto-approve+merge **only** inert changes (`docs/`,
-  `registro-construcao.md`, `.planning/frentes/`)
+  `build-log.md`, `.planning/workstreams/`)
 - Deploy adapted to stack: 5 templates (Vercel, Supabase Functions, Docker GHCR,
   npm publish, Static Pages)
 

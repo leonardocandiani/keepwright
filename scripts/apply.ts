@@ -152,11 +152,11 @@ function buildMapping(config: KeepwrightConfig): { src: string; dest: string }[]
     });
   }
 
-  // Lessons: *.md.template → docs/licoes/*.md (keep filenames)
-  for (const f of listDir(t("licoes"))) {
+  // Lessons: *.md.template → docs/lessons/*.md (keep filenames)
+  for (const f of listDir(t("lessons"))) {
     pairs.push({
-      src: t(join("licoes", f)),
-      dest: join("docs", "licoes", f.replace(/\.template$/, "")),
+      src: t(join("lessons", f)),
+      dest: join("docs", "lessons", f.replace(/\.template$/, "")),
     });
   }
 

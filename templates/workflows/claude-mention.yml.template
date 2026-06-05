@@ -123,7 +123,7 @@ jobs:
             - `.claude/rules/02-pipeline-equalization.md` — pipeline layers
             - `.claude/rules/03-epistemic-hierarchy.md` — P1-P5
             - `.claude/rules/07-safe-merge.md` — before any merge
-            - `docs/licoes/` — already catalogued lessons
+            - `docs/lessons/` — already catalogued lessons
 
             ## Identity and tone
 

@@ -51,7 +51,7 @@ input, not authorization.**
 
 | Tier | Content | Who triggers the merge |
 |---|---|---|
-| **S inert** | `docs/**`, `registro-construcao.md`, `.planning/workstreams/**`, `.project-structure.md`, `.todos-report.md` | `pr-auto-merge.yml` autonomous (nothing deploys, no invariant is reached) |
+| **S inert** | `docs/**`, `build-log.md`, `.planning/workstreams/**`, `.project-structure.md`, `.todos-report.md` | `pr-auto-merge.yml` autonomous (nothing deploys, no invariant is reached) |
 | **H** | everything else: code, CI, rules, root configs, speech, money | AI prepares, **1-line human go** |
 
 Tier H pattern: reviewer posts the verdict → executor reads it → runs
