@@ -2,13 +2,13 @@
 /**
  * validate-claude-md-sync.ts
  *
- * Equalização do CLAUDE.md como gate duro. Falha o CI se:
- *  1. Existe arquivo em .claude/rules/ sem ponteiro no CLAUDE.md
- *  2. CLAUDE.md aponta pra uma rule que não existe (ponteiro morto)
+ * CLAUDE.md equalization as a hard gate. Fails CI if:
+ *  1. A file in .claude/rules/ has no pointer in CLAUDE.md
+ *  2. CLAUDE.md points to a rule that doesn't exist (dead pointer)
  *
- * Princípio: rule sem ponteiro no CLAUDE.md = rule invisível pra quem lê
- * só a constituição. O CLAUDE.md é sempre carregado; as rules não. Manter
- * os dois sincronizados é camada de segurança, não burocracia.
+ * Principle: a rule without a pointer in CLAUDE.md = a rule invisible to
+ * whoever reads only the constitution. CLAUDE.md is always loaded; the rules
+ * are not. Keeping the two in sync is a safety layer, not bureaucracy.
  */
 
 import { readdir, readFile } from "node:fs/promises";
@@ -25,48 +25,48 @@ let claudeMd: string;
 try {
   claudeMd = await readFile(CLAUDE_MD, "utf-8");
 } catch {
-  fail(`${CLAUDE_MD} não encontrado na raiz do projeto.`);
+  fail(`${CLAUDE_MD} not found at the project root.`);
 }
 
 let ruleFiles: string[];
 try {
   ruleFiles = (await readdir(RULES_DIR)).filter((f) => f.endsWith(".md"));
 } catch {
-  console.log("validate-claude-md-sync: .claude/rules/ ausente, nada a checar.");
+  console.log("validate-claude-md-sync: .claude/rules/ absent, nothing to check.");
   process.exit(0);
 }
 
 const problemas: string[] = [];
 
-// 1. toda rule tem ponteiro no CLAUDE.md
+// 1. every rule has a pointer in CLAUDE.md
 for (const f of ruleFiles) {
   if (!claudeMd.includes(f)) {
     problemas.push(
-      `Rule \`${RULES_DIR}/${f}\` não tem ponteiro no ${CLAUDE_MD}. ` +
-        `Adicione uma linha no índice "Como ler este projeto".`,
+      `Rule \`${RULES_DIR}/${f}\` has no pointer in ${CLAUDE_MD}. ` +
+        `Add a line to the "How to read this project" index.`,
     );
   }
 }
 
-// 2. todo ponteiro .claude/rules/<x>.md no CLAUDE.md existe de fato
+// 2. every .claude/rules/<x>.md pointer in CLAUDE.md actually exists
 const referenciadas = [...claudeMd.matchAll(/\.claude\/rules\/([\w.-]+\.md)/g)].map(
   (m) => m[1],
 );
 for (const ref of new Set(referenciadas)) {
   if (!ruleFiles.includes(ref)) {
     problemas.push(
-      `${CLAUDE_MD} referencia \`.claude/rules/${ref}\` que não existe ` +
-        `(ponteiro morto). Corrija o nome ou crie a rule.`,
+      `${CLAUDE_MD} references \`.claude/rules/${ref}\` which doesn't exist ` +
+        `(dead pointer). Fix the name or create the rule.`,
     );
   }
 }
 
 if (problemas.length > 0) {
-  console.error(`\x1b[31m❌ validate-claude-md-sync: ${problemas.length} problema(s)\x1b[0m`);
+  console.error(`\x1b[31m❌ validate-claude-md-sync: ${problemas.length} problem(s)\x1b[0m`);
   for (const p of problemas) console.error(`   - ${p}`);
   process.exit(1);
 }
 
 console.log(
-  `\x1b[32m✅ validate-claude-md-sync: ${ruleFiles.length} rules sincronizadas com ${CLAUDE_MD}.\x1b[0m`,
+  `\x1b[32m✅ validate-claude-md-sync: ${ruleFiles.length} rules in sync with ${CLAUDE_MD}.\x1b[0m`,
 );

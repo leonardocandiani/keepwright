@@ -1,44 +1,44 @@
-## O que muda
+## What changes
 
-<!-- 1-3 bullets sobre o que esse PR entrega -->
+<!-- 1-3 bullets on what this PR delivers -->
 
 -
 -
 
-## Por que
+## Why
 
-<!-- Motivação. Issue relacionada (se houver): closes #N -->
+<!-- Motivation. Related issue (if any): closes #N -->
 
-## Tipo
+## Type
 
-- [ ] feat — nova funcionalidade
-- [ ] fix — correção de bug
-- [ ] refactor — refatoração sem mudança de comportamento
-- [ ] docs — apenas documentação
-- [ ] chore — manutenção, configs, deps
-- [ ] template — mudança em algum `templates/*`
+- [ ] feat — new capability
+- [ ] fix — bug fix
+- [ ] refactor — behavior-preserving change
+- [ ] docs — documentation only
+- [ ] chore — maintenance, config, deps
+- [ ] template — change under `templates/*`
 
 ## Checklist
 
-- [ ] Mudança em rule? Atualizei o ponteiro no CLAUDE.md.template
-- [ ] Mudança em template? Renderei mentalmente com placeholders preenchidos e confere
-- [ ] Mudança em workflow? Testei o YAML com `actionlint` (ou `gh workflow view`)
-- [ ] Sem secrets no diff
-- [ ] CHANGELOG.md atualizado em `[Unreleased]`
-- [ ] Commit segue conventional commits e não menciona IA
+- [ ] Changed a rule? Updated its pointer in `templates/CLAUDE.md.template`
+- [ ] Changed a template? Rendered it mentally with placeholders filled and it holds
+- [ ] Changed a workflow? Checked the YAML with `actionlint` (or `gh workflow view`)
+- [ ] No secrets in the diff
+- [ ] CHANGELOG.md updated under `[Unreleased]`
+- [ ] Commit follows Conventional Commits and does not mention AI
 
 ## Smoke test
 
-<!-- Como testar essa mudança em um projeto-cobaia: -->
+<!-- How to test this change on a throwaway project: -->
 
 ```bash
-# exemplo:
-cd projeto-teste/
+# example:
+cd test-project/
 claude
-> /setup-projeto-qualidade
-# esperar: ...
+> /keepwright:setup
+# expect: ...
 ```
 
-## Observações
+## Notes
 
-<!-- Decisões de design, alternativas consideradas, ou qualquer contexto extra -->
+<!-- Design decisions, alternatives considered, or any extra context -->

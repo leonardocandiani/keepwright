@@ -1,38 +1,41 @@
-# Contribuindo
+# Contributing
 
-Obrigado por considerar contribuir! Esta skill é open source (MIT) e PRs são muito bem-vindos.
+Thanks for considering a contribution. keepwright is open source (MIT) and PRs
+are welcome.
 
-## Antes de abrir um PR
+## Before opening a PR
 
-1. **Confere se já existe issue ou PR** sobre o mesmo tema
-2. **Abre uma issue antes de mudanças grandes** — vamos alinhar antes de você gastar tempo
-3. **Lê o [SKILL.md](SKILL.md)** pra entender a filosofia e os 7 princípios não-negociáveis
-4. **Lê o [CHANGELOG.md](CHANGELOG.md)** pra ver o que tá vindo
+1. **Check for an existing issue or PR** on the same topic.
+2. **Open an issue before large changes** — let's align before you spend time.
+3. **Read [README.md](README.md)** to understand the three layers (wizard,
+   engine, workflows) and the commands.
+4. **Read [CHANGELOG.md](CHANGELOG.md)** to see what's planned.
 
-## Setup local
+## Local setup
 
 ```bash
-git clone https://github.com/leonardocandiani/setup-projeto-qualidade
-cd setup-projeto-qualidade
+git clone https://github.com/leonardocandiani/keepwright
+cd keepwright
 ```
 
-Não tem build step — a skill é puramente markdown + templates. Edita os arquivos relevantes em `templates/` ou `SKILL.md` e testa invocando `/setup-projeto-qualidade` em um projeto-cobaia.
+No build step — the plugin is markdown + templates. Edit the relevant files
+under `templates/`, then test by installing the plugin and running
+`/keepwright:setup` in a throwaway project.
 
-## Estrutura do repo
+## Repo structure
 
 ```
 .
-├── README.md              # documentação pública
-├── SKILL.md               # contrato da skill com o Claude Code
-├── CHANGELOG.md           # histórico versionado
-├── CONTRIBUTING.md        # este arquivo
+├── README.md              # public docs
+├── CHANGELOG.md           # versioned history
+├── CONTRIBUTING.md         # this file
 ├── LICENSE                # MIT
-└── templates/             # tudo que a skill instala
+└── templates/             # everything the plugin installs
     ├── CLAUDE.md.template
     ├── settings.json.template
     ├── lefthook.yml.template
     ├── PULL_REQUEST_TEMPLATE.md.template
-    ├── rules/             # 7 rules estruturadas
+    ├── rules/             # structured rules
     ├── agents/
     ├── workflows/         # CI + auto-review + auto-merge + deploys
     ├── validators/
@@ -40,89 +43,92 @@ Não tem build step — a skill é puramente markdown + templates. Edita os arqu
     └── scripts/
 ```
 
-## Conventional Commits (obrigatório)
+## Conventional Commits (required)
 
 ```
-feat(rules): adicionar rule 08-rollback-protocol
-fix(validators): corrigir regex de detecção de OAuth token
-docs: melhorar seção de matriz de deploy no README
+feat(rules): add rule 09-rollback-protocol
+fix(validators): fix OAuth token detection regex
+docs: improve deploy matrix section in the README
 chore(deps): bump lefthook 1.7.x
-refactor(skill): consolidar Fase 4 e Fase 5 em uma fase de "automação"
+refactor(engine): merge validator setup into one step
 ```
 
-Tipos aceitos: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`, `perf`, `template`.
+Accepted types: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`,
+`perf`, `template`.
 
-**Nunca menciona IA/Claude em commits**. O autor é sempre o mantenedor humano.
+**Never mention AI/Claude in commits.** The author is always the human maintainer.
 
-## Padrões pra mudanças
+## Change patterns
 
-### Mudando uma rule
+### Changing a rule
 
-- Atualiza o arquivo em `templates/rules/XX-nome.md.template`
-- **Confere se o ponteiro existe no `templates/CLAUDE.md.template`**
-- Se for rule nova, adiciona o ponteiro
-- Atualiza CHANGELOG em `[Unreleased]`
+- Edit the file in `templates/rules/XX-name.md.template`.
+- **Check that the pointer exists in `templates/CLAUDE.md.template`.**
+- If it's a new rule, add the pointer.
+- Update CHANGELOG under the current release.
 
-### Mudando um template de workflow
+### Changing a workflow template
 
-- Edita `templates/workflows/<nome>.yml.template`
-- Valida o YAML mentalmente com placeholders preenchidos
-- Recomendado: rodar `actionlint` localmente no YAML renderizado
-- Atualiza CHANGELOG
+- Edit `templates/workflows/<name>.yml.template`.
+- Sanity-check the YAML with placeholders filled in.
+- Recommended: run `actionlint` on the rendered YAML locally.
+- Update CHANGELOG.
 
-### Adicionando nova variante de deploy
+### Adding a deploy variant
 
-- Cria `templates/workflows/deploy/<stack>.yml.template`
-- Atualiza a matriz no `SKILL.md` (seção "Matriz de deploy")
-- Atualiza a matriz no `README.md`
-- Atualiza CHANGELOG
+- Create `templates/workflows/deploy/<stack>.yml.template`.
+- Update the deploy matrix in `README.md`.
+- Update CHANGELOG.
 
-### Adicionando novo validator
+### Adding a validator
 
-- Cria `templates/validators/<nome>.ts.template`
-- Documenta no `SKILL.md` o que ele valida
-- Atualiza CHANGELOG
+- Create `templates/validators/<name>.ts.template`.
+- Document what it checks in the README.
+- Update CHANGELOG.
 
-## Princípios para PRs
+## PR principles
 
-1. **Equalização**: rule nova ou template movido = atualização no `CLAUDE.md.template` no mesmo PR
-2. **Catalisação**: mudança não-trivial precisa de seção em `[Unreleased]` no CHANGELOG
-3. **Sem AI mentions** em commits, código ou docs
-4. **Sem secrets** — o CI tem grep agressivo, mas confere antes de pushar
+1. **Equalization**: a new rule or a moved template means an update to
+   `CLAUDE.md.template` in the same PR.
+2. **Catalysis**: a non-trivial change needs a CHANGELOG entry.
+3. **No AI mentions** in commits, code, or docs.
+4. **No secrets** — CI greps aggressively, but check before you push.
 
-## Smoke test antes de pedir review
+## Smoke test before requesting review
 
-Antes de marcar o PR como "ready for review":
+Before marking a PR ready for review:
 
-1. Clone a versão do PR em um projeto-cobaia
-2. Roda `/setup-projeto-qualidade`
-3. Confirma que a Fase 0 detecta corretamente
-4. Se mexeu em alguma fase específica, valida só essa
-5. Cola o resultado no campo "Smoke test" do PR template
+1. Install the PR version of the plugin in a throwaway project.
+2. Run `/keepwright:setup`.
+3. Confirm stack detection is correct.
+4. If you touched a specific phase, validate just that one.
+5. Paste the result into the "Smoke test" field of the PR template.
 
-## Comunicação
+## Communication
 
-- **Português** ou **inglês**, ambos funcionam
-- Comentários em PRs/issues: direto, sem rodeios
-- Se travar em algo, abre uma issue de discussão antes de gastar tempo
+- **English** preferred. Direct, no fluff.
+- If you get stuck, open a discussion issue before spending time.
 
-## Reportando bugs
+## Reporting bugs
 
-Abre uma [issue](https://github.com/leonardocandiani/setup-projeto-qualidade/issues/new?template=bug_report.md) com:
+Open an [issue](https://github.com/leonardocandiani/keepwright/issues/new?template=bug_report.md)
+with:
 
-- Stack do projeto-alvo (Node? Python? Monorepo?)
-- Output completo do erro
-- Comando exato que disparou
-- O que esperava que acontecesse
+- Target project stack (Node? Python? Monorepo?)
+- Full error output
+- The exact command that triggered it
+- What you expected to happen
 
-## Sugerindo features
+## Suggesting features
 
-Abre uma [issue](https://github.com/leonardocandiani/setup-projeto-qualidade/issues/new?template=feature_request.md) descrevendo:
+Open an [issue](https://github.com/leonardocandiani/keepwright/issues/new?template=feature_request.md)
+describing:
 
-- Problema que resolve
-- Como você imagina a solução
-- Alternativas que considerou
+- The problem it solves
+- How you imagine the solution
+- Alternatives you considered
 
-## Código de Conduta
+## Code of Conduct
 
-Esse projeto adere ao [Code of Conduct](CODE_OF_CONDUCT.md). Ao participar, você se compromete a seguir esses termos.
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). By participating,
+you agree to its terms.

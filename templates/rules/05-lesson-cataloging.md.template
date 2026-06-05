@@ -1,0 +1,105 @@
+# Lesson Cataloging
+
+Every lesson becomes a versioned artifact **immediately after the fix is merged**. It does not pile up as "I'll catalog it later" — more than 1 day goes by and it's lost.
+
+## Where to catalog
+
+| Type of learning | Destination |
+|---|---|
+| Specific bug with an identified cause | `docs/lessons/L-XXX-title.md` |
+| Change across 3+ layers with an architectural decision | `docs/reference-cases/YYYY-MM-DD-title.md` |
+| New convention to apply from now on | `.claude/rules/NN-title.md` (new rule OR edit an existing rule) |
+| External API change (payment gateway, CRM, provider, etc.) | `docs/api/<service>.md` |
+| Relevant deploy/migration | `docs/deploys/historico.md` (append) |
+| Project chronology | `build-log.md` (append) |
+
+## Lesson template
+
+`docs/lessons/L-XXX-title.md`:
+
+```markdown
+# L-XXX — Short title
+
+**Date:** YYYY-MM-DD
+**PR:** #NN
+**Affected layers:** (list of layers, reference to 02-pipeline-equalization.md)
+**Severity:** high/medium/low
+
+## Symptom (P1)
+
+What the maintainer (or user in production) saw. In their words, screenshot, transcript, pasted log.
+
+## Investigation
+
+Descending path P1 → P5. Each level confirms or refutes the hypothesis.
+
+## Root cause
+
+Where the bug was born. Not "I forgot to call X", but WHY it was easy to forget
+(e.g. method name didn't suggest importance, missing validator, ambiguous
+prompt, etc.).
+
+## Fix
+
+What changed. Summarized diff or commit reference.
+
+## Prevention from now on
+
+What we added so this bug doesn't come back:
+- New validator in `scripts/validators/`?
+- New rule in `.claude/rules/`?
+- Smoke test in `tests/`?
+- Make the TypeScript type less permissive?
+
+## When this lesson applies
+
+List of future situations where this learning holds.
+```
+
+## Reference-case template
+
+`docs/reference-cases/YYYY-MM-DD-title.md`:
+
+```markdown
+# Case: <title>
+
+**Date:** YYYY-MM-DD
+**Type:** feature / refactor / architectural decision
+
+## Context
+
+Why this change was necessary.
+
+## Decision
+
+What we chose to do, and why. Mention the alternatives considered and
+why they were rejected.
+
+## Touched layers
+
+List of the pipeline equalization layers (C1-C12). For each one, what
+was changed.
+
+## Smoke test
+
+Which scenario we ran to validate. Result.
+
+## Derived cataloging
+
+- Lessons created: L-XXX, L-XXY
+- Rules updated
+- New validators
+```
+
+## Core principle
+
+Uncataloged lesson = lost lesson. The next dev (or you yourself 3 months from
+now) will repeat the same bug because the learning died in the context of
+one loose conversation.
+
+## Anti-pattern
+
+❌ "I'll write it down later" — you won't
+❌ Cataloging only the **fix** without **why the bug happened** — loses value
+❌ Generic lesson ("validate input") — specific or nothing
+❌ Duplicate lesson — before creating one, grep `docs/lessons/` for whether it already exists

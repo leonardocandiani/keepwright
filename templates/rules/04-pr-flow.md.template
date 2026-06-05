@@ -1,53 +1,53 @@
-# Fluxo de PR
+# PR Flow
 
-Todo merge na `main` passa por PR. Sem exceção, mesmo pra typo.
+Every merge into `main` goes through a PR. No exceptions, even for a typo.
 
-## Antes de abrir o PR
+## Before opening the PR
 
-1. **Branch:** `feat/<descrição>`, `fix/<descrição>`, `refactor/<descrição>`, `docs/<descrição>`, `chore/<descrição>`
-2. **Commits:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Autor `{{MANTENEDOR}}`. NUNCA mencionar IA.
-3. **Type check / build:** roda o check da stack tocada (ex: `tsc --noEmit`, `deno check`, `go build`, `pytest --collect-only`). Verde antes de push.
-4. **Validators:** rodam local via `scripts/validators/run-all.sh`. Bloqueiam se falham.
-5. **Equalização:** verificar `.claude/rules/02-equalizacao-pipeline.md` — todas as camadas necessárias foram tocadas?
-6. **Smoke test:** se mudou comportamento de uma feature crítica, simular o fluxo end-to-end com dados realistas antes de abrir o PR.
+1. **Branch:** `feat/<description>`, `fix/<description>`, `refactor/<description>`, `docs/<description>`, `chore/<description>`
+2. **Commits:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`). Author `{{MAINTAINER}}`. NEVER mention AI.
+3. **Type check / build:** run the check for the touched stack (e.g. `tsc --noEmit`, `deno check`, `go build`, `pytest --collect-only`). Green before push.
+4. **Validators:** run locally via `scripts/validators/run-all.sh`. They block if they fail.
+5. **Equalization:** check `.claude/rules/02-pipeline-equalization.md` — were all the required layers touched?
+6. **Smoke test:** if you changed the behavior of a critical feature, simulate the end-to-end flow with realistic data before opening the PR.
 
-## Template do PR
+## PR template
 
-`.github/PULL_REQUEST_TEMPLATE.md` é obrigatório. Sempre preenche:
+`.github/PULL_REQUEST_TEMPLATE.md` is mandatory. Always fill in:
 
-- **Camadas tocadas** (lista de camadas do `02-equalizacao-pipeline.md`)
-- **Smoke test executado** (qual, resultado)
-- **Quebra contrato com módulo vizinho?** (camadas que precisam gerar o mesmo resultado)
-- **Catalisar lição?** (referência a `docs/licoes/L-XXX-*.md` criada)
+- **Touched layers** (list of layers from `02-pipeline-equalization.md`)
+- **Smoke test run** (which one, result)
+- **Breaks contract with a neighboring module?** (layers that need to produce the same result)
+- **Catalog a lesson?** (reference to the `docs/lessons/L-XXX-*.md` created)
 
 ## Review
 
-- **Auto-review** rola via GitHub Action `pr-auto-review.yml` (heurística + Claude Code review do diff)
-- **Aprovação humana:** o mantenedor via CODEOWNERS. Merge segue `.claude/rules/07-merge-seguro.md` (duplo gate + `mergeStateStatus CLEAN`)
-- Auto-review pode marcar `request-changes` se detecta:
-  - Mudança de comportamento sem teste correspondente
-  - Violação de invariante (`.claude/rules/01-invariantes.md`)
-  - Regra de negócio crítica alterada sem update na doc canônica
-  - Contrato novo (tool/endpoint/schema) sem definição completa
-  - Camada tocando módulo vizinho sem ratificar no callsite vizinho
+- **Auto-review** runs via the GitHub Action `pr-auto-review.yml` (heuristic + Claude Code review of the diff)
+- **Human approval:** the maintainer via CODEOWNERS. Merge follows `.claude/rules/07-safe-merge.md` (double gate + `mergeStateStatus CLEAN`)
+- Auto-review can flag `request-changes` if it detects:
+  - Behavior change without a corresponding test
+  - Invariant violation (`.claude/rules/01-invariants.md`)
+  - Critical business rule changed without updating the canonical doc
+  - New contract (tool/endpoint/schema) without a complete definition
+  - A layer touching a neighboring module without ratifying it at the neighbor's callsite
 
 ## Merge
 
-- Squash merge (linha de história limpa na `main`)
-- Mensagem do squash segue Conventional Commits
-- Branch deletado após merge
-- Tag se for release: `v0.X.Y` (semver)
+- Squash merge (clean history line on `main`)
+- The squash message follows Conventional Commits
+- Branch deleted after merge
+- Tag if it's a release: `v0.X.Y` (semver)
 
-## Pós-merge — catalisação
+## Post-merge — cataloging
 
-1. Se PR tocou 3+ camadas, criar `docs/casos-referencia/YYYY-MM-DD-titulo.md`
-2. Se PR consertou bug, adicionar entrada em `docs/licoes/L-XXX-titulo.md`
-3. Se PR estabeleceu nova convenção, virar rule em `.claude/rules/` (e adicionar ponteiro no `CLAUDE.md`)
-4. Append em `registro-construcao.md` (linha cronológica)
+1. If the PR touched 3+ layers, create `docs/reference-cases/YYYY-MM-DD-title.md`
+2. If the PR fixed a bug, add an entry in `docs/lessons/L-XXX-title.md`
+3. If the PR established a new convention, turn it into a rule in `.claude/rules/` (and add a pointer in `CLAUDE.md`)
+4. Append to `build-log.md` (chronological line)
 
 ## Anti-pattern
 
-❌ Merge direto sem PR (mesmo o mantenedor)
-❌ `--no-verify` pra pular hook que falhou
-❌ Squash merge sem editar a mensagem (mantém commits ruins do branch)
-❌ Fechar PR sem catalisar lição
+❌ Direct merge without a PR (even the maintainer)
+❌ `--no-verify` to skip a hook that failed
+❌ Squash merge without editing the message (keeps the branch's bad commits)
+❌ Closing a PR without cataloging the lesson

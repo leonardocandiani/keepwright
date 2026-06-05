@@ -1,12 +1,12 @@
 name: Deploy (Vercel)
 
-# Stack: Next.js / Vite / SPA hospedado na Vercel.
-# Dispara só PÓS-merge na main (deploy nunca roda no PR).
+# Stack: Next.js / Vite / SPA hosted on Vercel.
+# Triggers only POST-merge on main (deploy never runs on a PR).
 #
-# Secrets necessários (gh secret set ... -R {{REPO}}):
-#   VERCEL_TOKEN       - token de conta Vercel
-#   VERCEL_ORG_ID      - id da org (vercel project ls / .vercel/project.json)
-#   VERCEL_PROJECT_ID  - id do projeto
+# Required secrets (gh secret set ... -R {{REPO}}):
+#   VERCEL_TOKEN       - Vercel account token
+#   VERCEL_ORG_ID      - org id (vercel project ls / .vercel/project.json)
+#   VERCEL_PROJECT_ID  - project id
 
 on:
   push:

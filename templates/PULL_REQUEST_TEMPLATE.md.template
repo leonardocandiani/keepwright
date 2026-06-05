@@ -1,68 +1,68 @@
-# PR — <título curto descritivo>
+# PR — <short descriptive title>
 
-## Sintoma / motivação
+## Symptom / motivation
 
-<Por que esse PR existe? Print, log, lead bug, pedido do usuário. Não fabrica narrativa retroativa.>
+<Why does this PR exist? Screenshot, log, lead bug, user request. Don't fabricate a retroactive narrative.>
 
-## O que mudou
+## What changed
 
 -
 -
 -
 
-## Camadas tocadas (equalização)
+## Touched layers (equalization)
 
-Referência: `.claude/rules/02-equalizacao-pipeline.md`
+Reference: `.claude/rules/02-pipeline-equalization.md`
 
-<!-- Adapte a lista de camadas conforme arquitetura do projeto -->
-- [ ] C1 — {{CAMADA_1}}
-- [ ] C2 — {{CAMADA_2}}
-- [ ] C3 — {{CAMADA_3}}
-- [ ] CN — Outras
+<!-- Adapt the list of layers to the project's architecture -->
+- [ ] C1 — {{LAYER_1}}
+- [ ] C2 — {{LAYER_2}}
+- [ ] C3 — {{LAYER_3}}
+- [ ] CN — Others
 
-**Pulei camada porque:** <justificar se aplicável>
+**I skipped a layer because:** <justify if applicable>
 
 ## Smoke test
 
-<que cenário rodei pra validar>
+<which scenario I ran to validate>
 
-## VALIDAÇÃO EMPÍRICA (ambiente real)
+## EMPIRICAL VALIDATION (real environment)
 
-> Obrigatório se o PR toca código funcional (`src/`, `app/`, `api/`, etc).
-> Cole **output real** — não "vou testar depois". Compilar ≠ funcionar.
-> Ver `.claude/rules/08-prova-empirica-pre-merge.md`. Mudança não-funcional
-> (docs/refactor/style/config) é isenta: deixe `# prova-empirica: ignore <razão>`.
+> Mandatory if the PR touches functional code (`src/`, `app/`, `api/`, etc).
+> Paste **real output** — not "I'll test later". Compiling ≠ working.
+> See `.claude/rules/08-empirical-proof.md`. A non-functional change
+> (docs/refactor/style/config) is exempt: leave `# empirical-proof: ignore <reason>`.
 
-- **O que testei:** <comando/fluxo>
-- **Ambiente:** <staging / preview / prod / local rodando de verdade>
+- **What I tested:** <command/flow>
+- **Environment:** <staging / preview / prod / local actually running>
 - **Output:**
 
 ```
-<cole aqui o output real: retorno do comando, linha de log, resultado da query>
+<paste the real output here: command return, log line, query result>
 ```
 
-- **Cenário do bug:** <reproduz antes / não reproduz depois, se aplicável>
+- **Bug scenario:** <reproduces before / doesn't reproduce after, if applicable>
 
-## Catalisação
+## Cataloging
 
-- [ ] Lição catalogada em `docs/licoes/L-XXX-*.md`
-- [ ] Caso de referência criado em `docs/casos-referencia/YYYY-MM-DD-*.md` (se 3+ camadas)
-- [ ] Rule atualizada em `.claude/rules/` (se nova convenção)
-- [ ] `registro-construcao.md` append entry
-- [ ] `AGENTS.md` entry com data e camadas
+- [ ] Lesson cataloged in `docs/lessons/L-XXX-*.md`
+- [ ] Reference case created in `docs/reference-cases/YYYY-MM-DD-*.md` (if 3+ layers)
+- [ ] Rule updated in `.claude/rules/` (if a new convention)
+- [ ] `build-log.md` append entry
+- [ ] `AGENTS.md` entry with date and layers
 
-## Risco
+## Risk
 
-- [ ] Baixo (config, doc, rule)
-- [ ] Médio (arquivo único, sem mudança de contrato)
-- [ ] Alto (esquema DB, contrato API, fluxo crítico)
+- [ ] Low (config, doc, rule)
+- [ ] Medium (single file, no contract change)
+- [ ] High (DB schema, API contract, critical flow)
 
 ## Checklist
 
-- [ ] Type check verde local
-- [ ] Prova empírica colada na seção `VALIDAÇÃO EMPÍRICA` (se toca código funcional)
-- [ ] Validators verdes (`scripts/validators/run-all.sh`)
-- [ ] Sem `console.log` de debug que vai pra produção
-- [ ] Sem segredo commitado (validate-no-secrets passa)
-- [ ] Mensagem do squash segue Conventional Commits
-- [ ] Sem `--no-verify` em commits desta branch
+- [ ] Type check green locally
+- [ ] Empirical proof pasted in the `EMPIRICAL VALIDATION` section (if it touches functional code)
+- [ ] Validators green (`scripts/validators/run-all.sh`)
+- [ ] No debug `console.log` going to production
+- [ ] No committed secret (validate-no-secrets passes)
+- [ ] The squash message follows Conventional Commits
+- [ ] No `--no-verify` in commits on this branch

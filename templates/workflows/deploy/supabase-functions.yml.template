@@ -1,13 +1,13 @@
 name: Deploy (Supabase Edge Functions)
 
 # Stack: Supabase edge functions (Deno).
-# Dispara só PÓS-merge na main, e só se mexeu em supabase/functions/**.
-# Deploya apenas as functions que mudaram (não redeploya tudo).
+# Triggers only POST-merge on main, and only if supabase/functions/** changed.
+# Deploys only the functions that changed (does not redeploy everything).
 #
-# Secrets necessários (gh secret set ... -R {{REPO}}):
-#   SUPABASE_ACCESS_TOKEN  - token de acesso (supabase login)
-# Variável:
-#   SUPABASE_PROJECT_REF   - ref do projeto (ajuste abaixo)
+# Required secrets (gh secret set ... -R {{REPO}}):
+#   SUPABASE_ACCESS_TOKEN  - access token (supabase login)
+# Variable:
+#   SUPABASE_PROJECT_REF   - project ref (set below)
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       function:
-        description: 'Nome da function (vazio = todas as alteradas)'
+        description: 'Function name (empty = all changed)'
         required: false
         default: ''
 

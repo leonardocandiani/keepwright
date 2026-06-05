@@ -1,106 +1,146 @@
 # Changelog
 
-Todas as mudanças notáveis deste projeto serão documentadas aqui.
+All notable changes to this project are documented here.
 
-Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
-versionamento segue [SemVer](https://semver.org/lang/pt-BR/).
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+versioning follows [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [2.0.0] — 2026-06-05
 
-### Adicionado
-- **Prova Empírica Pré-Merge (PEP)** — 3ª perna do tripé empírico (análise →
-  hierarquia → prova). Nova rule `08-prova-empirica-pre-merge.md` + validator
-  `validate-prova-empirica.ts`: mudança funcional só mergeia com evidência de que
-  **roda** contra ambiente real (output de comando, log, query, cenário do bug
-  reproduzido), colada no PR sob `## VALIDAÇÃO EMPÍRICA`. HARD no CI (com PR
-  body), LEMBRETE no pre-push. Isento docs/refactor/style/config/workflow.
-  Bypass `# prova-empirica: ignore <razão>`. Equalizado em CLAUDE.md (ponteiro +
-  resumo), REVIEW.md (§3.1 critério crítico + §3.5 seção canônica + §5
-  validators), PULL_REQUEST_TEMPLATE (seção VALIDAÇÃO EMPÍRICA + checklist),
-  `pr-auto-review.yml` (gate hard) e lefthook pre-push (lembrete). Refinado em
-  produção no Cote.Zap. Vira 5º pilar de qualidade na SKILL.md.
-- **Modelo explícito + 1M no Claude review e mention.** `pr-auto-review.yml` e
-  `claude-mention.yml` agora rodam com `--model {{REVIEW_MODEL}}` (default
-  recomendado `claude-opus-4-8[1m]`) em vez do default da conta. Placeholder
-  `{{REVIEW_MODEL}}` + tabela de decisão por plano (Max/Team/Enterprise → Opus
-  4.8 1M; Pro → Opus 4.8; cost-sensitive → Sonnet 4.6) na SKILL.md.
+Rebrand to **keepwright** and full plugin redesign. The old
+`setup-projeto-qualidade` skill becomes a Claude Code plugin with three layers:
+an interactive wizard command, a deterministic engine, and orchestration
+workflows.
 
-### Corrigido
-- **Opus 4.8 caía em fallback silencioso.** A `claude-code-action@v1`
-  auto-instala uma CLI defasada (~2.1.150, anterior ao Opus 4.8); `--model
-  claude-opus-4-8` rodava no default da conta sem erro. Os dois workflows
-  ganharam um step `Instalar Claude Code` que **pina** uma versão >= 2.1.154,
-  **verifica** (gate fail-fast), e aponta `path_to_claude_code_executable` pra
-  ela (action pula a própria instalação). `rm -rf` da instalação nativa antes
-  do install resolve o launcher resolvendo versão antiga em runner
-  reusado/self-hosted; `allowed_bots: "claude"` libera menção @claude por bot.
-  Validado ao vivo: review e mention reportando Opus 4.8 1M sobre CLI 2.1.160.
+### Changed
 
-### Planejado
-- Suporte a monorepo Turbo/Nx com camadas por workspace
-- Template de deploy Cloudflare Pages/Workers
-- Template de deploy Railway
-- Variante Python com Ruff + Mypy + Hatch
-- Variante Rust com Cargo + Clippy
-- Validador específico pra UI (termos proibidos em strings user-facing)
-- Wizard interativo pra customizar invariantes do `01-invariantes.md`
+- **Rebrand: `setup-projeto-qualidade` → keepwright.** Install via
+  `/plugin marketplace add leonardocandiani/keepwright` then
+  `/plugin install keepwright`.
+- **Single skill → plugin with three commands.** `/keepwright:setup` (the wizard,
+  formerly the whole skill), `/keepwright:audit` (integration coverage of an
+  existing repo), `/keepwright:review` (repo state vs. derived patterns).
+- **Deterministic engine split out.** Validators and git hooks run identically on
+  every machine and in CI, with no model in the loop.
+
+### Added
+
+- **Orchestration workflows.** Multi-agent flows that audit an existing repo,
+  derive its design and writing-voice patterns, and write them back as rules and
+  validators.
+- **OAuth via `/install-github-app`.** Recommended primary auth path for the AI
+  workflows; it wires `CLAUDE_CODE_OAUTH_TOKEN` for you. Added
+  `scripts/setup-oauth-secret.sh` as a deterministic fallback: reads the token
+  from the macOS Keychain or `CLAUDE_CODE_OAUTH_TOKEN`, validates its shape, and
+  sets the secret without mangling.
+- **Empirical Proof Before Merge (EPP)** — 3rd leg of the empirical tripod
+  (analysis → hierarchy → proof). New rule `08-empirical-proof.md` +
+  validator `validate-empirical-proof.ts`: a functional change merges only with
+  evidence that it **runs** against a real environment (command output, log,
+  query, reproduced bug scenario), pasted into the PR under
+  `## EMPIRICAL VALIDATION`. HARD in CI (with a PR body), REMINDER on pre-push.
+  Exempts docs/refactor/style/config/workflow. Bypass via
+  `# empirical-proof: ignore <reason>`. Equalized across CLAUDE.md (pointer +
+  summary), REVIEW.md (§3.1 critical criterion + §3.5 canonical section + §5
+  validators), PULL_REQUEST_TEMPLATE (EMPIRICAL VALIDATION section + checklist),
+  `pr-auto-review.yml` (hard gate), and lefthook pre-push (reminder).
+- **Explicit model + 1M context in Claude review and mention.**
+  `pr-auto-review.yml` and `claude-mention.yml` now run with
+  `--model {{REVIEW_MODEL}}` (recommended default `claude-opus-4-8[1m]`) instead
+  of the account default. Placeholder `{{REVIEW_MODEL}}` + a per-plan decision
+  table (Max/Team/Enterprise → Opus 4.8 1M; Pro → Opus 4.8; cost-sensitive →
+  Sonnet 4.6).
+
+### Fixed
+
+- **Opus 4.8 fell back silently.** `claude-code-action@v1` auto-installs a stale
+  CLI (~2.1.150, pre-Opus 4.8), so `--model claude-opus-4-8` ran on the account
+  default without erroring. Both workflows now have an `Install Claude Code` step
+  that **pins** a version >= 2.1.154, **verifies** it (fail-fast gate), and points
+  `path_to_claude_code_executable` at it (the action skips its own install).
+  `rm -rf` of the native install before the install fixes the launcher resolving
+  an old version on a reused/self-hosted runner; `allowed_bots: "claude"` lets a
+  bot trigger the `@claude` mention. Validated live: review and mention reporting
+  Opus 4.8 1M over CLI 2.1.160.
+
+### Planned
+
+- Monorepo Turbo/Nx support with per-workspace layers
+- Cloudflare Pages/Workers deploy template
+- Railway deploy template
+- Python variant with Ruff + Mypy + Hatch
+- Rust variant with Cargo + Clippy
+- UI-specific validator (forbidden terms in user-facing strings)
+- Interactive wizard to customize the `01-invariants.md` invariants
 
 ## [1.0.0] — 2026-05-15
 
-Primeira release pública. Skill consolidada com fluxo de 10 fases.
+First public release. Skill consolidated around a 10-phase flow.
 
-**Coautoria**: Leonardo Candiani ([@leonardocandiani](https://github.com/leonardocandiani)) e SixQuasar ([@sixquasar](https://github.com/sixquasar)) — empresa de tecnologia fundada por Leonardo Candiani, Ricardo e Rodrigo. Refinada em produção em SixClaw, Cote.Zap, Ofertix, Sixosteria, Vox e Lupe.
+**Co-authorship**: Leonardo Candiani ([@leonardocandiani](https://github.com/leonardocandiani))
+and SixQuasar ([@sixquasar](https://github.com/sixquasar)) — a tech company
+founded by Leonardo Candiani, Ricardo, and Rodrigo. Refined in production on
+SixClaw, Cote.Zap, Ofertix, Sixosteria, Vox, and Lupe.
 
-### Adicionado
+### Added
 
-#### Estrutura `.claude/`
-- 7 rules estruturadas: invariantes, equalização de pipeline, hierarquia epistêmica P1-P5, PR flow, catalisação de lições, frentes paralelas, merge seguro
-- Agent `worker.md` com `isolation: worktree` pra paralelismo isolado
-- `settings.json` com `includeCoAuthoredBy: false` + attribution vazia + allowlist Bash
+#### `.claude/` structure
+- 7 structured rules: invariants, pipeline equalization, P1–P5 epistemic
+  hierarchy, PR flow, lesson catalysis, parallel work streams, safe merge
+- `worker.md` agent with `isolation: worktree` for isolated parallelism
+- `settings.json` with `includeCoAuthoredBy: false` + empty attribution + Bash
+  allowlist
 
-#### Constituição
-- `CLAUDE.md.template` como índice equalizado das rules + invariantes sempre-carregados
-- `AGENTS.md` (diário vivo append-only) + `registro-construcao.md` (cronologia)
-- Estrutura `docs/{casos-referencia,licoes,deploys,api,arquitetura}/`
+#### Constitution
+- `CLAUDE.md.template` as an equalized index of the rules + always-loaded
+  invariants
+- `AGENTS.md` (append-only living journal) + `build-log.md` (chronology)
+- `docs/{reference-cases,lessons,deploys,api,architecture}/` structure
 
 #### GitHub Actions
-- `ci.yml` — type check, lint, validators (PR + push main)
-- `pr-auto-review.yml` — 3 jobs: heurística + check-key + Claude review via OAuth
-- `claude-mention.yml` — `@claude` sob demanda em PR/issue/review
-- `pr-auto-merge.yml` — auto-approve+merge **só** Tier S inerte (`docs/`, `registro-construcao.md`, `.planning/frentes/`)
-- Deploy adaptado à stack: 5 templates (Vercel, Supabase Functions, Docker GHCR, npm publish, Static Pages)
+- `ci.yml` — type-check, lint, validators (PR + push main)
+- `pr-auto-review.yml` — 3 jobs: heuristic + check-key + Claude review over OAuth
+- `claude-mention.yml` — `@claude` on demand in a PR/issue/review
+- `pr-auto-merge.yml` — auto-approve+merge **only** inert changes (`docs/`,
+  `build-log.md`, `.planning/workstreams/`)
+- Deploy adapted to stack: 5 templates (Vercel, Supabase Functions, Docker GHCR,
+  npm publish, Static Pages)
 
-#### Validators portáveis
-- `validate-no-secrets.ts` — grep agressivo de secrets em arquivos staged (`pk_live_`, `sk_live_`, `sbp_`, `ghp_`, `sk-ant-`, etc)
-- `validate-claude-md-sync.ts` — falha CI se rule sem ponteiro no CLAUDE.md ou ponteiro morto
+#### Portable validators
+- `validate-no-secrets.ts` — aggressive secret grep over staged files (`pk_live_`,
+  `sk_live_`, `sbp_`, `ghp_`, `sk-ant-`, etc.)
+- `validate-claude-md-sync.ts` — fails CI if a rule has no pointer in CLAUDE.md,
+  or a dead pointer
 
 #### Hooks
-- `lefthook.yml` — pre-commit (validators + type check), commit-msg (conventional + bloqueia menção a IA), pre-push (bloqueia force pra main)
-- Geradores portáveis: `gen-project-structure.ts`, `gen-todos-report.ts`
+- `lefthook.yml` — pre-commit (validators + type-check), commit-msg (conventional
+  + blocks AI mentions), pre-push (blocks force-push to main)
+- Portable generators: `gen-project-structure.ts`, `gen-todos-report.ts`
 
 #### Scripts
-- `gh-pr-merge-safe.sh` — gate `mergeStateStatus = CLEAN` antes de merge
+- `gh-pr-merge-safe.sh` — gate `mergeStateStatus = CLEAN` before merge
 
-#### Templates auxiliares
-- `PULL_REQUEST_TEMPLATE.md` com checklist equalização/smoke/catalisação
+#### Helper templates
+- `PULL_REQUEST_TEMPLATE.md` with an equalization/smoke/catalysis checklist
 
-### Princípios consolidados
-- Análise antes de execução (Fase 0 nunca pulada)
-- Aprovação por onda (Fase 1 destrutiva requer ok explícito)
-- Validação dupla (smoke test após cada fase)
-- Preserva histórico (sub-repos com `.git` próprio não absorvidos sem confirmação)
-- Bloqueia secrets via grep agressivo pré-commit
-- Equalização CLAUDE.md como gate duro no CI
-- OAuth prioritário sobre API key pra workflows de IA
+### Consolidated principles
+- Analysis before execution (Phase 0 never skipped)
+- Wave-based approval (Phase 1 is destructive, needs explicit ok)
+- Double validation (smoke test after each phase)
+- History preserved (sub-repos with their own `.git` not absorbed without
+  confirmation)
+- Secrets blocked via aggressive pre-commit grep
+- CLAUDE.md equalization as a hard CI gate
+- OAuth preferred over API key for the AI workflows
 
-### Stacks suportadas (Fase 0 detecta automaticamente)
-- Next.js + backend serverless
-- Next.js puro
+### Supported stacks (Phase 0 detects automatically)
+- Next.js + serverless backend
+- Plain Next.js
 - Node CLI
 - Python FastAPI
-- React SPA + API separada
-- Serviço containerizado
-- Monorepo (instala múltiplas variantes de deploy)
+- React SPA + separate API
+- Containerized service
+- Monorepo (installs multiple deploy variants)
 
-[Unreleased]: https://github.com/leonardocandiani/setup-projeto-qualidade/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/leonardocandiani/setup-projeto-qualidade/releases/tag/v1.0.0
+[2.0.0]: https://github.com/leonardocandiani/keepwright/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/leonardocandiani/keepwright/releases/tag/v1.0.0

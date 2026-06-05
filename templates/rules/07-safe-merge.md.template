@@ -1,0 +1,70 @@
+# Safe Merge — double gate + `mergeStateStatus: CLEAN`
+
+Operational invariant of {{PROJECT}}. Loaded in every session that runs
+`gh pr merge`. Origin: a recurring incident where an agent merged a PR with a
+failing check because it trusted `mergeable` without checking `mergeStateStatus`.
+Classified as serious.
+
+## Founding principle
+
+**Merge a PR ONLY when `mergeStateStatus === "CLEAN"`.** `mergeable ===
+"MERGEABLE"` alone is INSUFFICIENT — they report different concepts.
+
+| Field | Meaning | Sufficient? |
+|---|---|---|
+| `mergeable: MERGEABLE` | No file conflict | ❌ NO |
+| `mergeStateStatus: CLEAN` | All checks passed, zero visible failure | ✅ YES |
+| `UNSTABLE` | Mergeable but a check is visibly failing | ❌ |
+| `BLOCKED` | Branch protection / missing approval | ❌ |
+| `BEHIND` | Rebase needed | ❌ |
+| `DIRTY` | Active conflict | ❌ |
+
+## Mandatory canonical wrapper
+
+Every Claude Code session OR manual terminal uses
+`scripts/gh-pr-merge-safe.sh` instead of `gh pr merge` directly.
+
+```bash
+bash scripts/gh-pr-merge-safe.sh 42 --squash --delete-branch
+```
+
+The wrapper: queries `mergeStateStatus`. If != CLEAN → lists `gh pr checks`
++ exit 1. If == CLEAN → merges. `gh pr merge` directly = violation.
+
+Bypass: `{{PROJECT_UPPER}}_MERGE_UNSAFE=1` only with the owner's explicit
+sign-off documented in the commit/PR body and a context where the non-CLEAN
+state is provably OK.
+
+## Double gate (who decides the merge)
+
+### Gate 1 — executor (local Claude Code session)
+
+Investigates, implements, opens the PR. Local smoke green before the push.
+
+### Gate 2 — reviewer (Claude AI review in the GitHub Action)
+
+Posts an informational verdict: status + layers + findings + caveats +
+recommendation. **Branch protection does not block the merge — the verdict is
+input, not authorization.**
+
+### Final decision by tier
+
+| Tier | Content | Who triggers the merge |
+|---|---|---|
+| **S inert** | `docs/**`, `build-log.md`, `.planning/workstreams/**`, `.project-structure.md`, `.todos-report.md` | `pr-auto-merge.yml` autonomous (nothing deploys, no invariant is reached) |
+| **H** | everything else: code, CI, rules, root configs, speech, money | AI prepares, **1-line human go** |
+
+Tier H pattern: reviewer posts the verdict → executor reads it → runs
+`gh-pr-merge-safe.sh` → hands the owner a one-liner ("PR #N, no caveats,
+mergeState CLEAN, touches X, go?") → owner confirms → executor merges.
+
+`go`/`ok` confirms the merge of that already-prepared PR. It is not permanent
+authorization and does not cover commits.
+
+## Anti-pattern
+
+❌ `gh pr merge` without checking `mergeStateStatus`
+❌ `gh pr merge` directly without the wrapper
+❌ AI→AI loop merging Tier H without a human go
+❌ Tier S auto-merge when 1 file in the diff falls outside the allowlist
+❌ Bypass `{{PROJECT_UPPER}}_MERGE_UNSAFE=1` without documented sign-off

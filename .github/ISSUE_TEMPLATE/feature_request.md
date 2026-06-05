@@ -1,40 +1,40 @@
 ---
 name: Feature request
-about: Sugerir uma nova capacidade ou melhoria
+about: Suggest a new capability or improvement
 title: "[feat] "
 labels: enhancement
 assignees: leonardocandiani
 ---
 
-## Problema que resolve
+## Problem it solves
 
-<!-- Qual dor essa feature resolve? Por que ela importa? -->
+<!-- What pain does this feature address? Why does it matter? -->
 
-## Solução proposta
+## Proposed solution
 
-<!-- Como você imagina a solução? Pode ser pseudo-código, exemplo de uso, etc -->
+<!-- How do you picture it? Pseudo-code, usage example, etc. -->
 
-## Alternativas consideradas
+## Alternatives considered
 
-<!-- Que outras abordagens você pensou? Por que essa é a melhor? -->
+<!-- What other approaches did you weigh? Why is this the best one? -->
 
-## Categoria
+## Category
 
-- [ ] Nova rule em `templates/rules/`
-- [ ] Nova variante de deploy em `templates/workflows/deploy/`
-- [ ] Novo validator em `templates/validators/`
-- [ ] Novo workflow em `templates/workflows/`
-- [ ] Mudança no fluxo das fases (SKILL.md)
-- [ ] Suporte a nova stack/runtime
-- [ ] Documentação
-- [ ] Outro: <!-- descreve -->
+- [ ] New rule in `templates/rules/`
+- [ ] New deploy variant in `templates/workflows/deploy/`
+- [ ] New validator in `templates/validators/`
+- [ ] New workflow in `templates/workflows/`
+- [ ] Change to the setup wizard flow (`commands/`)
+- [ ] Support for a new stack/runtime
+- [ ] Documentation
+- [ ] Other: <!-- describe -->
 
-## Stack/contexto relacionado
+## Related stack/context
 
-<!-- Se for específico a alguma stack (Python, Rust, Deno), menciona aqui -->
+<!-- If specific to a stack (Python, Rust, Deno), mention it here -->
 
-## Disposição pra contribuir
+## Willingness to contribute
 
-- [ ] Posso abrir o PR
-- [ ] Posso ajudar a testar
-- [ ] Só sugerindo, sem disponibilidade pra implementar
+- [ ] I can open the PR
+- [ ] I can help test
+- [ ] Just suggesting, no availability to implement
