@@ -169,6 +169,14 @@ function buildMapping(config: KeepwrightConfig): { src: string; dest: string }[]
     });
   }
 
+  // Issue templates: *.template → .github/ISSUE_TEMPLATE/* (bug_report, feature_request, config)
+  for (const f of listDir(t(join(".github", "ISSUE_TEMPLATE")))) {
+    pairs.push({
+      src: t(join(".github", "ISSUE_TEMPLATE", f)),
+      dest: join(".github", "ISSUE_TEMPLATE", f.replace(/\.template$/, "")),
+    });
+  }
+
   // Deploy: pick the single variant by config.deploy → .github/workflows/deploy.yml
   if (config.deploy !== "none") {
     const variant = t(join("workflows", "deploy", `${config.deploy}.yml.template`));

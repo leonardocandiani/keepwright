@@ -68,11 +68,13 @@ jobs:
             "templates/rules/06-parallel-workstreams.md.template"
             "templates/rules/07-safe-merge.md.template"
             "templates/rules/08-empirical-proof.md.template"
+            "templates/rules/09-issue-triage.md.template"
             "templates/agents/worker.md.template"
             "templates/workflows/ci.yml.template"
             "templates/workflows/pr-auto-review.yml.template"
             "templates/workflows/claude-mention.yml.template"
             "templates/workflows/pr-auto-merge.yml.template"
+            "templates/workflows/issue-triage.yml.template"
             "templates/workflows/deploy/vercel.yml.template"
             "templates/workflows/deploy/supabase-functions.yml.template"
             "templates/workflows/deploy/docker-ghcr.yml.template"
@@ -88,6 +90,10 @@ jobs:
             "templates/scripts/gh-pr-merge-safe.sh.template"
             "templates/scripts/setup-oauth-secret.sh.template"
             "templates/scripts/setup-self-hosted-runner.sh.template"
+            "templates/scripts/seed-labels.sh.template"
+            "templates/.github/ISSUE_TEMPLATE/bug_report.md.template"
+            "templates/.github/ISSUE_TEMPLATE/feature_request.md.template"
+            "templates/.github/ISSUE_TEMPLATE/config.yml.template"
           )
           MISSING=0
           for f in "${REQUIRED[@]}"; do

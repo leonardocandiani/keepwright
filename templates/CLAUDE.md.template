@@ -15,6 +15,7 @@
 | Changed code? Prove it runs | `.claude/rules/08-empirical-proof.md` |
 | Learned something? | `.claude/rules/05-lesson-cataloging.md` |
 | Large investigation | `.claude/rules/06-parallel-workstreams.md` |
+| Triaging an issue? | `.claude/rules/09-issue-triage.md` |
 | Chronological history | `build-log.md` |
 | Living journal | `AGENTS.md` |
 

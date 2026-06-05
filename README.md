@@ -80,11 +80,18 @@ Multi-agent orchestration the commands run under the hood — each fans out para
   always-loaded invariants inline.
 - **Rules** — `.claude/rules/`: invariants, pipeline equalization, the P1–P5
   epistemic hierarchy, PR flow, lesson catalysis, parallel work streams, safe
-  merge, and empirical proof before merge.
+  merge, empirical proof before merge, and issue triage.
 - **GitHub Actions** — `ci.yml` (type-check, lint, validators), `pr-auto-review.yml`
   (heuristic + Claude review over OAuth), `claude-mention.yml` (`@claude` on
-  demand), `pr-auto-merge.yml` (auto-merge only for inert changes), and a deploy
+  demand), `pr-auto-merge.yml` (auto-merge only for inert changes),
+  `issue-triage.yml` (advisory labels via free GitHub Models), and a deploy
   template picked by stack.
+- **Issue triage** — new issues are classified by GitHub Models (free in Actions,
+  no secret) and get advisory labels + a summary comment, deterministically. It
+  never closes, assigns, or merges — least-privilege by construction, so a prompt
+  injection in an issue body cannot reach code or secrets. Ships with issue
+  templates and `scripts/seed-labels.sh`. Turn it off with `"issues": { "triage":
+  "off" }`.
 - **Validators** — portable TypeScript checks: secret scanning, CLAUDE.md sync,
   epistemic-hierarchy gate, empirical-proof gate, webhook-active check.
 - **Hooks** — lefthook (pre-commit validators + type-check, conventional
