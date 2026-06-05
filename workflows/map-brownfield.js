@@ -5,7 +5,7 @@
 // tokens — the command only triggers it for non-trivial repos.
 
 export const meta = {
-  name: 'keepwright-map-brownfield',
+  name: 'map-brownfield',
   description: 'Map a brownfield repo in parallel and synthesize a keepwright config enrichment',
   phases: [
     { title: 'Scan', detail: 'analyze repo dimensions in parallel' },

@@ -46,6 +46,21 @@ Loads keepwright's commands, skills, and agents into the current session — no 
 | `/keepwright:audit` | Checks integration coverage of an existing repo against the architecture. |
 | `/keepwright:review` | Compares repo state against the patterns derived from your code and docs. |
 
+## Workflows
+
+Multi-agent orchestration the commands run under the hood — each fans out parallel agents and synthesizes the result. You normally don't call these directly (the commands trigger them), but they're invocable on their own for advanced use:
+
+| Workflow | What it does | Triggered by |
+|----------|--------------|--------------|
+| `/keepwright:map-brownfield` | Parallel read-only analysis of a large repo, synthesized into a config enrichment. | `setup` (large repos) |
+| `/keepwright:derive-patterns` | Mines the repo's design + writing-voice patterns into rules and validator specs. | `setup`, `review` |
+| `/keepwright:verify-setup` | Adversarially verifies a fresh setup in parallel: secrets, equalization, workflow YAML, validators, the P1–P5 hierarchy. | `audit --deep` |
+
+## Skills & agents
+
+- **Skills** — `keepwright` (the methodology behind the wizard) and `pr-review` (the review procedure the CI calls as `/pr-review #N`).
+- **Agents** — `design-auditor` and `voice-auditor`: read-only auditors that inspect the repo's design and writing-voice dimensions.
+
 ## Three layers
 
 - **Wizard** (`/keepwright:setup`) — an interactive command that detects git,
