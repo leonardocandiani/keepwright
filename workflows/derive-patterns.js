@@ -7,7 +7,7 @@
 // agents read the repo and return structured output).
 
 export const meta = {
-  name: 'keepwright-derive-patterns',
+  name: 'derive-patterns',
   description: "Derive the repo's design + writing-voice patterns and turn them into rules and auto-validator specs",
   phases: [
     { title: 'Observe', detail: 'mine design + voice patterns in parallel' },

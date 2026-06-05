@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [2.0.1] — 2026-06-05
+
+### Fixed
+
+- Clean workflow names — `map-brownfield`, `derive-patterns`, `verify-setup`
+  (were prefixed `keepwright-`, which surfaced as the redundant
+  `/keepwright:keepwright-*`). No behavior change — the commands trigger them by path.
+
+### Documentation
+
+- README now documents the workflows and the skills/agents the plugin exposes,
+  not just the three top-level commands.
+- Install split into numbered steps plus `/reload-plugins` to activate after install.
+
 ## [2.0.0] — 2026-06-05
 
 Rebrand to **keepwright** and full plugin redesign. The old

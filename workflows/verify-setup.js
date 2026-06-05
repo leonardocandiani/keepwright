@@ -5,7 +5,7 @@
 // apply (and is what /keepwright:audit can escalate to).
 
 export const meta = {
-  name: 'keepwright-verify-setup',
+  name: 'verify-setup',
   description: 'Adversarially verify a freshly applied keepwright setup in parallel',
   phases: [
     { title: 'Probe', detail: 'each dimension is attacked by an independent agent' },
