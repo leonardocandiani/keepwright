@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [2.0.2] — 2026-06-05
+
+### Fixed
+
+- Workflow templates are now fully generic, so they fit any repo. The PR
+  auto-review and `@claude` mention workflows no longer hardcode
+  `runs-on: [self-hosted, ...]` — they use `{{RUNNER}}` from the config
+  (default `ubuntu-latest`; self-hosted only when chosen). The critical-file
+  detection greps now come from the config's `criticalFiles[]` instead of
+  example project paths.
+
+### Removed
+
+- Client project names dropped from `AUTHORS.md` and the 1.0.0 changelog entry.
+
 ## [2.0.1] — 2026-06-05
 
 ### Fixed
@@ -94,7 +109,7 @@ First public release. Skill consolidated around a 10-phase flow.
 **Co-authorship**: Leonardo Candiani ([@leonardocandiani](https://github.com/leonardocandiani))
 and SixQuasar ([@sixquasar](https://github.com/sixquasar)) — a tech company
 founded by Leonardo Candiani, Ricardo, and Rodrigo. Refined in production on
-SixClaw, Cote.Zap, Ofertix, Sixosteria, Vox, and Lupe.
+real-world projects.
 
 ### Added
 
