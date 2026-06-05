@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: General discussion
-    url: https://github.com/leonardocandiani/setup-projeto-qualidade/discussions
+    url: https://github.com/leonardocandiani/keepwright/discussions
     about: For questions, ideas, or open conversation about keepwright
   - name: Author's site
     url: https://leonardocandiani.com.br
