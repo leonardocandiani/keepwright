@@ -36,6 +36,13 @@ jobs:
           head -1 skills/keepwright/SKILL.md | grep -q "^---$" || { echo "SKILL.md missing frontmatter"; exit 1; }
           grep -q "^name: keepwright$" skills/keepwright/SKILL.md || { echo "SKILL.md frontmatter name missing"; exit 1; }
           grep -q "^description:" skills/keepwright/SKILL.md || { echo "SKILL.md frontmatter description missing"; exit 1; }
+          test -f skills/overhaul/SKILL.md || { echo "skills/overhaul/SKILL.md missing"; exit 1; }
+          head -1 skills/overhaul/SKILL.md | grep -q "^---$" || { echo "overhaul SKILL.md missing frontmatter"; exit 1; }
+          grep -q "^name: overhaul$" skills/overhaul/SKILL.md || { echo "overhaul SKILL.md frontmatter name missing"; exit 1; }
+          grep -q "^description:" skills/overhaul/SKILL.md || { echo "overhaul SKILL.md frontmatter description missing"; exit 1; }
+          for r in artifacts grilling-fallback; do
+            test -f "skills/overhaul/references/$r.md" || { echo "skills/overhaul/references/$r.md missing"; exit 1; }
+          done
 
       - name: Check orchestration workflows exist
         run: |

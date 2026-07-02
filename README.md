@@ -45,6 +45,7 @@ Loads keepwright's commands, skills, and agents into the current session — no 
 | `/keepwright:setup` | Interactive wizard. Detects the stack and installs the full architecture. |
 | `/keepwright:audit` | Checks integration coverage of an existing repo against the architecture. |
 | `/keepwright:review` | Compares repo state against the patterns derived from your code and docs. |
+| `/keepwright:overhaul` | Full-repo overhaul orchestrator: parallel recon, a grilling interview, architecture by a frontier model, execution delegated to cheaper models, lessons catalyzed into rules. Every phase emits an artifact in `.overhaul/`, so work resumes across sessions and models. Use it to refactor, modernize, or clean up an existing repo end to end. |
 
 ## Workflows
 
@@ -58,7 +59,7 @@ Multi-agent orchestration the commands run under the hood — each fans out para
 
 ## Skills & agents
 
-- **Skills** — `keepwright` (the methodology behind the wizard) and `pr-review` (the review procedure the CI calls as `/pr-review #N`).
+- **Skills** — `keepwright` (the methodology behind the wizard), `pr-review` (the review procedure the CI calls as `/pr-review #N`), and `overhaul` (the full-repo overhaul orchestrator: recon → grilling → architect specs → delegated execution → catalysis, with artifacts under `.overhaul/`).
 - **Agents** — `design-auditor` and `voice-auditor`: read-only auditors that inspect the repo's design and writing-voice dimensions.
 
 ## Three layers

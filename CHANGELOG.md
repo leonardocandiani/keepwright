@@ -5,6 +5,30 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [2.2.0] — 2026-07-02
+
+### Added
+
+- **New skill: `overhaul`** — a full-repo overhaul orchestrator for deep
+  refactoring, architecture improvement, dead-code removal, dependency updates,
+  and cleanup on any existing project. It splits the work by model tier: cheap
+  models fan out read-only reconnaissance, a frontier model grills the user and
+  writes the plan plus per-workstream specs, and cheaper executor models carry
+  the specs out — each phase emits an artifact under `.overhaul/`, so work
+  survives the session and resumes across models.
+- The skill integrates with what keepwright already ships instead of
+  duplicating it: recon prefers the `map-brownfield` workflow
+  (`${CLAUDE_PLUGIN_ROOT}/workflows/map-brownfield.js`), findings are ranked on
+  the P1–P5 epistemic hierarchy, no workstream merges without empirical proof,
+  and execution lessons are catalyzed into rules/validators where the
+  keepwright structure exists.
+- Reference files under `skills/overhaul/references/`: `artifacts.md` (the
+  RECON / OVERHAUL-PLAN / workstream-spec / LOG templates) and
+  `grilling-fallback.md` (a self-contained interview used when the external
+  `grilling` skill from mattpocock/skills is not installed).
+- CI now validates the `overhaul` skill's frontmatter and reference files,
+  same as the existing skill checks.
+
 ## [2.1.0] — 2026-06-05
 
 ### Added
