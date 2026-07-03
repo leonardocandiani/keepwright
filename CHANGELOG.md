@@ -5,6 +5,55 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [2.3.0] — 2026-07-03
+
+### Fixed
+
+- **PR auto-review was silently mute on a clean GitHub-hosted runner
+  (`ubuntu-latest`).** The review workflow invokes the action with
+  `prompt: "/pr-review #N"`, but that slash command only existed as the plugin
+  skill (`skills/pr-review/SKILL.md`), which is present only on a self-hosted
+  runner with the plugin installed. On the recommended GitHub-hosted runner the
+  command did not exist, so the action answered `Unknown command: /pr-review`,
+  the deterministic publish step found no output (`No execution_file
+  available — skip publish`), and nothing was posted. The check still went
+  green because the action step carries `continue-on-error: true` — a green but
+  mute review. Two changes fix it:
+  - `scripts/apply.ts` now materializes the command into the target repo at
+    `.claude/commands/pr-review.md`, from the new
+    `templates/commands/pr-review.md.template`, through the same idempotent,
+    anti-secret-scanned pipeline as every other template. The plugin skill
+    stays for local use; the target repo no longer depends on it.
+  - `templates/workflows/pr-auto-review.yml.template` now passes
+    `--setting-sources project` ahead of `--allowed-tools` on both action
+    attempts, so the runner loads the project-scoped command from the checkout.
+    Verified locally: `claude -p "/pr-review #N" --setting-sources project`
+    resolves the command; without the flag it answers `Unknown command`.
+  - Housekeeping in `scripts/apply.ts`: the six near-identical template-dir
+    mapping loops (rules, validators, hooks, scripts, commands, lessons) plus
+    the two filtered ones (workflows, issue templates) are collapsed into a
+    single `mapDir` helper. Same output, lower complexity — proven by applying
+    the engine against a fixture and diffing the produced tree (only the new
+    command file is added).
+
+### Changed
+
+- **Corrected the pr-auto-review template's guidance for posting the AI review
+  as `claude[bot]` instead of `github-actions[bot]`.** The template's
+  deterministic publish posts the verdict via `gh pr comment` with the
+  `GITHUB_TOKEN`, so it appears as `github-actions[bot]` (no Anthropic avatar).
+  The prior inline comment suggested `use_sticky_comment: true` alone as the
+  native alternative, but on an automation workflow (no `@claude` mention) v1 of
+  the action runs in agent mode and creates no tracking comment, so that input
+  alone does nothing. The comment now documents the real v1 mechanism:
+  `track_progress: true` forces tag mode so the action's own layer posts and
+  owns the comment as `claude[bot]`; a custom `--allowed-tools` must keep
+  `mcp__github_comment__update_claude_comment` or the model's write into that
+  comment is denied (the historical `permission_denials_count:3` swallow); and
+  no `github_token` may be passed or the identity reverts. The proven
+  deterministic publish stays the default until the native path is validated in
+  a repo with the Claude GitHub App installed.
+
 ## [2.2.0] — 2026-07-02
 
 ### Added

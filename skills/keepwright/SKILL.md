@@ -55,9 +55,10 @@ Versioned in the repo — the setup becomes reproducible and reviewable.
 - **`.claude/rules/`** — invariants, pipeline equalization, epistemic hierarchy
   (P1–P5), PR flow, lesson cataloging, parallel workstreams, safe merge, and any
   **derived rules** mined from the repo itself (design + voice).
-- **GitHub Actions** — CI (typecheck/lint/validators), AI PR auto-review (calls
-  the versioned `/pr-review` skill, advisory + deterministic publish + retry +
-  fallback), `@claude` mention, safe auto-merge (Tier-S only), and a stack-picked
+- **GitHub Actions** — CI (typecheck/lint/validators), AI PR auto-review (runs
+  the versioned `/pr-review` command installed into the repo, advisory +
+  deterministic publish + retry + fallback), `@claude` mention, safe auto-merge
+  (Tier-S only), and a stack-picked
   deploy workflow. Self-hosted runner option keeps CI minutes at zero.
 - **Validators** (`scripts/validators/`) — anti-secrets, CLAUDE.md equalization,
   epistemic hierarchy, webhook-active, empirical-proof, plus project-specific ones.
