@@ -96,6 +96,26 @@ function listDir(dir: string): string[] {
 }
 
 /**
+ * Append a (src → dest) pair for every file in a template subdir, stripping the
+ * trailing `.template`. `keep` (optional) filters which files map — e.g.
+ * workflows take only `*.yml.template`.
+ */
+function mapDir(
+  pairs: { src: string; dest: string }[],
+  srcSubdir: string,
+  destDir: string,
+  keep?: (f: string) => boolean,
+): void {
+  for (const f of listDir(join(TEMPLATES, srcSubdir))) {
+    if (keep && !keep(f)) continue;
+    pairs.push({
+      src: join(TEMPLATES, srcSubdir, f),
+      dest: join(destDir, f.replace(/\.template$/, "")),
+    });
+  }
+}
+
+/**
  * Build the full (srcTemplate → destRelative) mapping for a config.
  * Deploy is resolved to a single variant by config.deploy.
  */
@@ -120,62 +140,40 @@ function buildMapping(config: KeepwrightConfig): { src: string; dest: string }[]
     dest: join(".claude", "agents", "worker.md"),
   });
 
+  // Commands: *.md.template → .claude/commands/*.md. Project-scoped slash
+  // commands the target repo owns (e.g. pr-review). The PR auto-review
+  // workflow invokes `/pr-review` on a clean runner, which only resolves it
+  // when the command lives in the checkout and the action loads it with
+  // `--setting-sources project`. Without this the runner answers "Unknown
+  // command" and the review is silently mute.
+  mapDir(pairs, "commands", join(".claude", "commands"));
+
   // Rules: NN-*.md.template → .claude/rules/NN-*.md
-  for (const f of listDir(t("rules"))) {
-    pairs.push({
-      src: t(join("rules", f)),
-      dest: join(".claude", "rules", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "rules", join(".claude", "rules"));
 
   // Validators: *.ts.template → scripts/validators/*.ts
-  for (const f of listDir(t("validators"))) {
-    pairs.push({
-      src: t(join("validators", f)),
-      dest: join("scripts", "validators", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "validators", join("scripts", "validators"));
 
   // Hooks: gen-*.ts.template → scripts/hooks/gen-*.ts
-  for (const f of listDir(t("hooks"))) {
-    pairs.push({
-      src: t(join("hooks", f)),
-      dest: join("scripts", "hooks", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "hooks", join("scripts", "hooks"));
 
   // Shell scripts: *.sh.template → scripts/*.sh
-  for (const f of listDir(t("scripts"))) {
-    pairs.push({
-      src: t(join("scripts", f)),
-      dest: join("scripts", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "scripts", "scripts");
 
   // Lessons: *.md.template → docs/lessons/*.md (keep filenames)
-  for (const f of listDir(t("lessons"))) {
-    pairs.push({
-      src: t(join("lessons", f)),
-      dest: join("docs", "lessons", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "lessons", join("docs", "lessons"));
 
   // Workflows (non-deploy): ci, claude-mention, pr-auto-merge, pr-auto-review.
-  for (const f of listDir(t("workflows"))) {
-    if (!f.endsWith(".yml.template")) continue;
-    pairs.push({
-      src: t(join("workflows", f)),
-      dest: join(".github", "workflows", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(pairs, "workflows", join(".github", "workflows"), (f) =>
+    f.endsWith(".yml.template"),
+  );
 
   // Issue templates: *.template → .github/ISSUE_TEMPLATE/* (bug_report, feature_request, config)
-  for (const f of listDir(t(join(".github", "ISSUE_TEMPLATE")))) {
-    pairs.push({
-      src: t(join(".github", "ISSUE_TEMPLATE", f)),
-      dest: join(".github", "ISSUE_TEMPLATE", f.replace(/\.template$/, "")),
-    });
-  }
+  mapDir(
+    pairs,
+    join(".github", "ISSUE_TEMPLATE"),
+    join(".github", "ISSUE_TEMPLATE"),
+  );
 
   // Deploy: pick the single variant by config.deploy → .github/workflows/deploy.yml
   if (config.deploy !== "none") {

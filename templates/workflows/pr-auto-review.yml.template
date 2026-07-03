@@ -169,12 +169,27 @@ jobs:
         uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      # `use_sticky_comment: true` is the native alternative to the
-      # deterministic publish below (the action posts/updates a single PR
-      # comment itself). Do NOT swap it in blindly: validate empirically that
-      # the auto-post actually lands first — the allowlist has historically
-      # swallowed it (permission_denials_count:3, job green but mute). Left
-      # off by default; the deterministic publish step is the proven path.
+      # NATIVE claude[bot] IDENTITY (informational — off by default).
+      #
+      # The deterministic publish step below posts the verdict with the
+      # GITHUB_TOKEN, so the comment shows as github-actions[bot] (no Anthropic
+      # avatar). To make the action post it ITSELF as claude[bot], v1 needs, on
+      # the action step:
+      #   track_progress: true      # forces tag mode; the action's own layer
+      #                             # creates + owns the PR comment as claude[bot]
+      #   use_sticky_comment: true  # reuse one comment across pushes
+      # `use_sticky_comment` ALONE is not enough here: with no `@claude` mention
+      # v1 runs in agent mode and creates no tracking comment, so track_progress
+      # is what re-enables the App-posted comment. Also keep
+      # `mcp__github_comment__update_claude_comment` in --allowed-tools — the
+      # model writes the verdict INTO that comment, and dropping the tool is the
+      # historical permission_denials_count:3 swallow (comment created but left
+      # empty). NEVER pass a `github_token` input (that reverts the identity to
+      # the token's user). Requires the Claude GitHub App installed on the repo
+      # and `id-token: write` (already granted above). In tag mode DROP the
+      # deterministic publish below, or you get two comments. Left off until
+      # validated in a repo with the App installed; the deterministic publish is
+      # the proven path meanwhile.
       #
       # To run a deeper review, append `--model claude-opus-4-8` to
       # claude_args below (default is Sonnet).
@@ -185,7 +200,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: "/pr-review #${{ github.event.pull_request.number }}"
-          claude_args: '--allowed-tools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+          claude_args: '--setting-sources project --allowed-tools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Anti-leak of the persistent runner's Anthropic env.
@@ -206,7 +221,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: "/pr-review #${{ github.event.pull_request.number }} (retry)"
-          claude_args: '--allowed-tools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
+          claude_args: '--setting-sources project --allowed-tools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git log:*),Bash(git diff:*),Read,Grep,Glob"'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_AUTH_TOKEN: ""

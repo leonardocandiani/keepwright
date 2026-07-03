@@ -67,6 +67,7 @@ jobs:
             "templates/lefthook.yml.template"
             "templates/PULL_REQUEST_TEMPLATE.md.template"
             "templates/REVIEW.md.template"
+            "templates/commands/pr-review.md.template"
             "templates/rules/01-invariants.md.template"
             "templates/rules/02-pipeline-equalization.md.template"
             "templates/rules/03-epistemic-hierarchy.md.template"

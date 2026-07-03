@@ -59,7 +59,7 @@ Multi-agent orchestration the commands run under the hood — each fans out para
 
 ## Skills & agents
 
-- **Skills** — `keepwright` (the methodology behind the wizard), `pr-review` (the review procedure the CI calls as `/pr-review #N`), and `overhaul` (the full-repo overhaul orchestrator: recon → grilling → architect specs → delegated execution → catalysis, with artifacts under `.overhaul/`).
+- **Skills** — `keepwright` (the methodology behind the wizard), `pr-review` (the review procedure, also installed into each target repo as a `.claude/commands/pr-review.md` slash command so the CI resolves `/pr-review #N` on a clean GitHub-hosted runner), and `overhaul` (the full-repo overhaul orchestrator: recon → grilling → architect specs → delegated execution → catalysis, with artifacts under `.overhaul/`).
 - **Agents** — `design-auditor` and `voice-auditor`: read-only auditors that inspect the repo's design and writing-voice dimensions.
 
 ## Three layers
