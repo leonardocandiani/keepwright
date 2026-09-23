@@ -5,6 +5,30 @@ All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Every workflow job now picks its runner from the repository variable
+  `CI_RUNS_ON`.** `{{RUNNER}}` renders to
+  `${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}`, and `ci.yml` and
+  `pr-auto-merge.yml`, which had `ubuntu-latest` hardcoded and ignored the
+  config's `runner`, use it too. Switching a repo to a self-hosted pool is
+  `gh variable set CI_RUNS_ON --body '["self-hosted","linux","vps"]'`, and
+  deleting the variable is the kill switch back to GitHub-hosted, no PR needed.
+  Deploy templates keep `ubuntu-latest` until each one is proven on the pool.
+
+### Fixed
+
+- **`setup-self-hosted-runner.sh` no longer produces a runner that dies on its
+  first restart.** It passed a one-hour registration token and kept the
+  registration inside the container, so any restart after the token expired
+  looped on "Cannot configure the runner because it is already configured".
+  The registration now lives in a host volume
+  (`CONFIGURED_ACTIONS_RUNNER_FILES_DIR`), automatic deregistration on stop is
+  off, the image is pinned, the container gets CPU, memory and PID limits, and
+  the token reaches the host over stdin instead of the command line.
+
 ## [2.3.0] — 2026-08-31
 
 ### Added

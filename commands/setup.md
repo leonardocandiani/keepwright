@@ -42,7 +42,12 @@ nowhere.
    that detection left genuinely ambiguous:
    - **Stack** — confirm detected or correct it
    - **Deploy** — vercel | supabase-functions | docker-ghcr | npm-publish | static-pages | none
-   - **Runner** — self-hosted (zero CI minutes) | github
+   - **Runner**: self-hosted (zero CI minutes) | github. Either way every
+     job reads `runs-on` from the repository variable `CI_RUNS_ON` and falls
+     back to `ubuntu-latest` when it is unset. For self-hosted, bring the runner
+     up with `scripts/setup-self-hosted-runner.sh` and finish with the
+     `gh variable set CI_RUNS_ON ...` line it prints; deleting the variable
+     sends the repo back to GitHub-hosted runners without a PR.
    - **Auth** — oauth (subscription token, no metered cost) | apikey (pay per use)
    - **Critical files / custom validators** — optional, multi-select
 

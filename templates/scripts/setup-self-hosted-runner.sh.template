@@ -1,54 +1,84 @@
 #!/usr/bin/env bash
-# setup-self-hosted-runner.sh — brings up a containerized self-hosted runner
+# setup-self-hosted-runner.sh: brings up a containerized self-hosted runner
 # to zero out GitHub Actions minute usage (a self-hosted runner doesn't count
 # against the minute limit, for any repo visibility).
 #
 # SECURITY: use ONLY on a PRIVATE repo with trusted collaborators. On a public
-# repo, a fork PR runs arbitrary code on your host. Don't break this.
+# repo, a fork PR runs arbitrary code on your host. Don't break this. The
+# container never gets the host's docker.sock.
 #
 # Pre: docker on the target host; gh authenticated with admin on the repo.
 #
-# usage: bash setup-self-hosted-runner.sh <owner/repo> <host-ssh> <label>
-#   e.g.: bash setup-self-hosted-runner.sh {{REPO}} root@1.2.3.4:22 node01
+# usage: bash setup-self-hosted-runner.sh <owner/repo> <host-ssh> <label> [cpus] [memory]
+#   e.g.: bash setup-self-hosted-runner.sh {{REPO}} root@1.2.3.4:22 node01 2 6g
+#
+# Idempotent. The runner's registration lives in a host volume, so restarting
+# or recreating the container reuses it instead of asking for a new token.
+# (The old version passed a one-hour token and kept the registration inside the
+# container: after the first restart it looped on "already configured".)
 
 set -euo pipefail
 
 REPO="${1:?owner/repo}"
 HOST="${2:?user@host[:port] of the node}"   # e.g. root@1.2.3.4 or root@1.2.3.4:5922
 LABEL="${3:?runner label}"                  # e.g. node01
+CPUS="${4:-2}"
+MEMORY="${5:-6g}"
 PORT="22"; case "$HOST" in *:*) PORT="${HOST##*:}"; HOST="${HOST%:*}";; esac
 
-NAME="gha-runner-$(echo "$REPO" | tr '/' '-')"
+IMAGE="myoung34/github-runner:2.337.0-ubuntu-noble"
+SLUG="$(echo "$REPO" | tr '/' '-')"
+NAME="gha-runner-$SLUG"
+DATA="/docker/gha-runners/data/$SLUG"
+SSH=(ssh -o StrictHostKeyChecking=accept-new -p "$PORT" "$HOST")
 
-echo "→ minting registration token (expires ~1h, not persisted)..."
-REG=$(gh api -X POST "repos/$REPO/actions/runners/registration-token" --jq '.token')
-[ -n "$REG" ] || { echo "token failed"; exit 1; }
+if "${SSH[@]}" "test -f '$DATA/config/.runner'"; then
+  echo "→ registration already stored in $DATA/config, reusing it"
+  REG=""
+else
+  echo "→ minting registration token (expires ~1h, used once)..."
+  REG=$(gh api -X POST "repos/$REPO/actions/runners/registration-token" --jq '.token')
+  [ -n "$REG" ] || { echo "token failed"; exit 1; }
+fi
 
-echo "→ bringing up container '$NAME' on $HOST:$PORT (label: self-hosted,linux,x64,$LABEL)..."
-ssh -o StrictHostKeyChecking=accept-new -p "$PORT" "$HOST" \
-  "docker rm -f '$NAME' 2>/dev/null; \
-   docker pull myoung34/github-runner:latest >/dev/null && \
+echo "→ bringing up container '$NAME' on $HOST:$PORT (labels: self-hosted,linux,x64,$LABEL)..."
+printf '%s' "$REG" | "${SSH[@]}" "set -e; mkdir -p '$DATA/config' '$DATA/work'; \
+   REG=\$(cat); \
+   docker rm -f '$NAME' >/dev/null 2>&1 || true; \
+   docker pull -q '$IMAGE' >/dev/null; \
    docker run -d --restart unless-stopped --name '$NAME' \
+     --cpus '$CPUS' --memory '$MEMORY' --pids-limit 2048 \
+     --security-opt no-new-privileges:true \
+     --log-opt max-size=10m --log-opt max-file=3 \
+     -v '$DATA/config:/runner/config' -v '$DATA/work:/runner/work' \
      -e REPO_URL='https://github.com/$REPO' \
      -e RUNNER_NAME='$LABEL-$(echo "$REPO"|cut -d/ -f2)' \
-     -e RUNNER_TOKEN='$REG' \
+     -e RUNNER_TOKEN=\"\$REG\" \
      -e RUNNER_SCOPE=repo \
      -e LABELS='$LABEL' \
-     -e RUNNER_WORKDIR=/tmp/runner-work \
-     -e DISABLE_AUTO_UPDATE=true \
-     myoung34/github-runner:latest && sleep 15 && \
-   docker logs --tail 8 '$NAME'"
+     -e RUNNER_WORKDIR=/runner/work \
+     -e CONFIGURED_ACTIONS_RUNNER_FILES_DIR=/runner/config \
+     -e DISABLE_AUTOMATIC_DEREGISTRATION=true \
+     '$IMAGE' >/dev/null && sleep 20 && \
+   docker logs --tail 6 '$NAME' 2>&1 | grep -v -i token"
 
 echo "→ confirming on GitHub..."
 gh api "repos/$REPO/actions/runners" \
   --jq '.runners[] | .name+" status="+.status+" labels="+([.labels[].name]|join(","))'
 
-cat <<'NOTE'
+cat <<NOTE
 
-OK. Now point the HEAVY jobs at it in the workflows:
-  runs-on: [self-hosted, linux, x64]
-Keep light/critical/rare jobs on ubuntu-latest (resilience if the node
-goes down: self-hosted jobs sit in the QUEUE, they don't fail).
+OK. Every keepwright workflow picks its runner from the repository variable
+CI_RUNS_ON. Point this repo at the new runner with:
 
-Re-register (if you recreate the container): run this script again.
+  gh variable set CI_RUNS_ON -R $REPO --body '["self-hosted","linux","$LABEL"]'
+
+Kill switch (runner down, pool offline): delete the variable and every job
+goes back to ubuntu-latest on the next run, no PR needed:
+
+  gh variable delete CI_RUNS_ON -R $REPO
+
+The runner image ships Node 18; jobs that need a newer Node must pin it with
+actions/setup-node. Deploy workflows (templates/workflows/deploy/*) stay on
+ubuntu-latest until each one has a green run on the self-hosted runner.
 NOTE
