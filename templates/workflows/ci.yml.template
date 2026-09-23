@@ -16,7 +16,7 @@ jobs:
   #   Python:           mypy .
   type-check:
     name: Type check
-    runs-on: ubuntu-latest
+    runs-on: {{RUNNER}}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2  # or setup-node@v4, or setup-deno@v2, or setup-python@v5
@@ -28,7 +28,7 @@ jobs:
   # ─── Lint ──────────────────────────────────────────────────────────────
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: {{RUNNER}}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -39,7 +39,7 @@ jobs:
   # ─── Custom validators ─────────────────────────────────────────────────
   validators:
     name: Validators
-    runs-on: ubuntu-latest
+    runs-on: {{RUNNER}}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -54,7 +54,7 @@ jobs:
   # ─── Tests (optional) ──────────────────────────────────────────────────
   test:
     name: Tests
-    runs-on: ubuntu-latest
+    runs-on: {{RUNNER}}
     if: hashFiles('**/*.test.ts', '**/*.spec.ts') != ''
     steps:
       - uses: actions/checkout@v5

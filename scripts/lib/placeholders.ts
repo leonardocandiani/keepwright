@@ -109,9 +109,12 @@ export function buildPlaceholderMap(
     INVARIANT_REFS: (config.layers ?? []).length
       ? `the invariants for ${(config.layers ?? []).join(", ")}`
       : "the invariants in this repo",
-    // GitHub Actions runner. self-hosted only when the config asks for it;
-    // otherwise the generic GitHub-hosted runner, so workflows run in any repo.
-    RUNNER: config.runner === "self-hosted" ? "[self-hosted, linux, x64]" : "ubuntu-latest",
+    // GitHub Actions runner, chosen per repo at run time by the repository
+    // variable CI_RUNS_ON (a JSON label array such as ["self-hosted","linux"]).
+    // Unset, every job falls back to the GitHub-hosted runner, so deleting the
+    // variable is the kill switch when the self-hosted pool is down. The config's
+    // `runner` only decides whether setup prints the command that sets it.
+    RUNNER: `\${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}`,
     // Issue triage. `github-models` runs the classifier free in Actions over the
     // GITHUB_TOKEN; `off` makes the triage workflow a no-op via its top-level if.
     ISSUES_TRIAGE: config.issues?.triage ?? "github-models",

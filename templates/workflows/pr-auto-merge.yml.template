@@ -22,7 +22,7 @@ jobs:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: {{RUNNER}}
     steps:
       # Only the shared pattern file, so the gate reads the same secret shapes
       # as every other check instead of carrying its own copy. A sparse checkout
