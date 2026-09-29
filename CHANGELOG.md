@@ -7,6 +7,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-09-29
+
 ### Changed
 
 - **Every workflow job now picks its runner from the repository variable
